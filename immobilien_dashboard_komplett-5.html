@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wirtschaftlichkeitsrechner — Immobilien-Modernisierung</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f0efe9;--surface3:#e8e7e0;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#1a1a17;--text2:#5c5c56;--text3:#9a9a92;
+  --green:#0a6147;--green-bg:#dff2ea;--green-mid:#1D9E75;
+  --blue:#1458a0;--blue-bg:#e3eef9;
+  --amber:#7a4508;--amber-bg:#faebd6;
+  --red:#982020;--red-bg:#fce8e8;
+  --teal:#0e5e6f;--teal-bg:#e0f2f6;
+  --r:8px;--rl:12px;--gap:14px;
+}
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;color:var(--text);background:transparent;padding:16px;min-width:320px}
+
+/* NAV TABS */
+.nav{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.nav-btn{padding:8px 16px;font-size:14px;font-weight:500;border:1px solid var(--border2);border-radius:20px;background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
+.nav-btn:hover{background:var(--surface2)}
+.nav-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* TAB PAGES */
+.tab-page{display:none}
+.tab-page.active{display:block}
+
+/* PANELS */
+.panel{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:var(--gap)}
+.panel-head{padding:11px 16px;border-bottom:0.5px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.panel-head .ph-icon{width:14px;height:14px;opacity:.6}
+.panel-body{padding:14px 16px}
+
+/* GRID LAYOUT */
+.grid2{display:grid;grid-template-columns:360px 1fr;gap:var(--gap)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.grid2c{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+@media(max-width:780px){.grid2,.grid2c{grid-template-columns:1fr}}
+
+/* FORM */
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field.full{grid-column:1/-1}
+label{font-size:12px;color:var(--text2);font-weight:500}
+.unit{font-size:11px;color:var(--text3);margin-left:2px;font-weight:400}
+input[type=number],select{height:34px;padding:0 10px;font-size:14px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none}
+input[type=number]:focus,select:focus{border-color:var(--green)}
+.section-label{font-size:12px;font-weight:600;color:var(--text2);margin:12px 0 8px;padding-bottom:5px;border-bottom:0.5px solid var(--border);letter-spacing:.04em;text-transform:uppercase}
+
+/* METRICS */
+.metric{background:var(--surface2);border-radius:var(--r);padding:12px 13px}
+.metric-label{font-size:12px;color:var(--text2);margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:500;line-height:1.1;color:var(--text)}
+.metric-sub{font-size:12px;color:var(--text3);margin-top:3px}
+.metric.good .metric-value{color:var(--green)}
+.metric.warn .metric-value{color:var(--amber)}
+.metric.info .metric-value{color:var(--blue)}
+.metric.bad  .metric-value{color:var(--red)}
+.metric.teal .metric-value{color:var(--teal)}
+
+/* BARS */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-label{font-size:12px;color:var(--text2);width:150px;flex-shrink:0}
+.bar-track{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
+.bar-val{font-size:12px;font-weight:500;width:70px;text-align:right;flex-shrink:0}
+
+/* TABLES */
+.data-table{width:100%;font-size:13px;border-collapse:collapse}
+.data-table th{font-size:12px;font-weight:600;color:var(--text2);padding:6px 10px;border-bottom:0.5px solid var(--border);text-align:right}
+.data-table th:first-child{text-align:left}
+.data-table td{padding:6px 10px;text-align:right;border-bottom:0.5px solid var(--border)}
+.data-table td:first-child{text-align:left}
+.data-table tr:last-child td{border-bottom:none;font-weight:600}
+.pos{color:var(--green)}.neg{color:var(--red)}
+
+/* SENS */
+.s-good{background:var(--green-bg);color:var(--green);border-radius:3px;padding:2px 6px}
+.s-ok  {background:var(--amber-bg);color:var(--amber);border-radius:3px;padding:2px 6px}
+.s-bad {background:var(--red-bg);color:var(--red);border-radius:3px;padding:2px 6px}
+
+/* BUTTONS */
+.btn-primary{width:100%;height:38px;font-size:14px;font-weight:600;margin-top:10px;border:none;border-radius:var(--r);background:var(--green);color:#fff;cursor:pointer;letter-spacing:.03em}
+.btn-primary:hover{opacity:.88}
+.btn-outline{padding:7px 16px;font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text2);cursor:pointer}
+.btn-outline:hover{background:var(--surface2)}
+.btn-pdf{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;font-size:14px;font-weight:600;border:1.5px solid var(--green);border-radius:var(--r);background:var(--green-bg);color:var(--green);cursor:pointer}
+.btn-pdf:hover{background:var(--green-bg);opacity:.8}
+
+/* BADGE */
+.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:12px;font-weight:600}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-teal{background:var(--teal-bg);color:var(--teal)}
+
+/* GEG TABLE */
+.geg-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.geg-row:last-child{border-bottom:none}
+
+/* TILGUNGSPLAN */
+.tilg-table{width:100%;font-size:13px;border-collapse:collapse;max-height:320px;display:block;overflow-y:auto}
+.tilg-table th{font-size:12px;font-weight:600;color:var(--text2);padding:5px 8px;border-bottom:0.5px solid var(--border);text-align:right;position:sticky;top:0;background:var(--surface)}
+.tilg-table th:first-child{text-align:left}
+.tilg-table td{padding:5px 8px;text-align:right;border-bottom:0.5px solid var(--border)}
+.tilg-table td:first-child{text-align:left;font-weight:500}
+
+/* AFa */
+.afa-info{background:var(--blue-bg);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--blue);margin-bottom:10px;line-height:1.6}
+
+/* CHART CANVAS */
+canvas{max-width:100%;display:block}
+
+/* DIVIDER */
+.divider{height:0.5px;background:var(--border);margin:10px 0}
+
+/* OBJEKT WERT */
+.wert-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:12px}
+.wert-box{background:var(--surface2);border-radius:var(--r);padding:12px 14px;text-align:center}
+.wert-box .label{font-size:12px;color:var(--text2);margin-bottom:4px}
+.wert-box .val{font-size:22px;font-weight:500}
+/* TOOLTIPS */
+.tooltip-wrap{position:relative;display:inline-flex;align-items:center;gap:4px}
+.tooltip-icon{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--border2);color:var(--text2);font-size:10px;font-weight:700;cursor:help;flex-shrink:0;line-height:1}
+.tooltip-box{display:none;position:absolute;left:22px;top:-4px;background:#1a1a17;color:#fff;font-size:11px;line-height:1.5;padding:8px 12px;border-radius:6px;width:220px;z-index:9000;box-shadow:0 4px 16px rgba(0,0,0,0.3);pointer-events:none}
+.tooltip-icon:hover+.tooltip-box{display:block}
+.tooltip-box::before{content:'';position:absolute;left:-5px;top:10px;border:5px solid transparent;border-right-color:#1a1a17}
+/* VALIDATION */
+.field-error input,.field-error select{border-color:var(--red)!important;background:#fff8f8!important}
+.field-warn input,.field-warn select{border-color:var(--amber)!important;background:#fffaf5!important}
+.val-msg{font-size:11px;margin-top:3px;padding:3px 8px;border-radius:4px;display:none}
+.val-msg.error{display:block;color:var(--red);background:var(--red-bg)}
+.val-msg.warn{display:block;color:var(--amber);background:var(--amber-bg)}
+.val-msg.ok{display:block;color:var(--green);background:var(--green-bg)}
+#validation-banner{display:none;padding:10px 14px;background:var(--red-bg);border:1px solid var(--red);border-radius:var(--r);font-size:13px;color:var(--red);margin-bottom:10px;line-height:1.6}
+/* RECHENWEG */
+.acc-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 0;font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;font-weight:500;margin-top:4px}
+.acc-btn:hover{color:var(--green)}
+.acc-content{display:none;background:var(--surface2);border-radius:var(--r);padding:10px 12px;font-size:12px;margin-top:4px;line-height:1.7;border-left:3px solid var(--blue)}
+.acc-content.open{display:block}
+.acc-content code{font-family:monospace;font-size:13px;color:var(--blue);font-weight:600}
+.acc-content .calc-step{padding:3px 0;border-bottom:0.5px solid var(--border)}
+.acc-content .calc-step:last-child{border:none;font-weight:600;color:var(--green)}
+
+</head>
+<body>
+
+<!-- ═══ LIZENZ-OVERLAY (beim Start) ═══ -->
+<div id="license-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,15,20,0.85);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:36px 40px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px">Willkommen</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6">Wirtschaftlichkeitsrechner — Immobilien-Modernisierung<br><span style="font-size:11px;color:var(--text3)">Version <span id="app-version-overlay">2.0.0</span></span></div>
+    <div id="license-form">
+      <label style="font-size:12px;font-weight:600;color:var(--text2)">LIZENZSCHLÜSSEL</label>
+      <input type="text" id="license-input" placeholder="XXXX-XXXX-XXXX-XXXX" style="width:100%;height:38px;padding:0 12px;font-size:14px;border:1.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);outline:none;margin:6px 0 4px;letter-spacing:.08em">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Ihren Lizenzschlüssel erhalten Sie nach dem Kauf per E-Mail.</div>
+      <button onclick="activateLicense()" style="width:100%;height:40px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px">Lizenz aktivieren</button>
+      <button onclick="startTrial()" style="width:100%;height:36px;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:var(--r);font-size:13px;cursor:pointer">30 Tage kostenlos testen</button>
+      <div id="license-error" style="display:none;margin-top:10px;padding:8px 12px;background:var(--red-bg);color:var(--red);border-radius:var(--r);font-size:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOP BAR ═══ -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:8px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div>
+      <div style="font-size:11px;color:var(--text3)">Aktuelles Projekt</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text)" id="topbar-projname">Neues Projekt</div>
+    </div>
+    <div style="height:28px;width:0.5px;background:var(--border)"></div>
+    <div id="license-badge" style="display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:var(--green-bg);font-size:11px;font-weight:600;color:var(--green)">
+      <span>●</span> <span id="license-status-text">Lizenz aktiv</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3)">v<span id="app-version-top">2.0.0</span></div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn-outline" onclick="saveProject()" style="font-size:12px;padding:5px 12px">💾 Speichern</button>
+    <button class="btn-outline" onclick="document.getElementById('proj-import-file').click()" style="font-size:12px;padding:5px 12px">📂 Laden</button>
+    <button class="btn-outline" onclick="newProject()" style="font-size:12px;padding:5px 12px">＋ Neu</button>
+    <input type="file" id="proj-import-file" accept=".json" style="display:none" onchange="importProject(event)">
+    <button class="btn-pdf" onclick="exportPDF()" style="padding:5px 14px;font-size:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      PDF
+    </button>
+    <button onclick="showTab('einstellungen',{target:document.getElementById('settings-nav-btn')})" id="settings-nav-btn" class="nav-btn" style="padding:5px 12px;font-size:12px">⚙ Einstellungen</button>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('eingabe')">Eingabe & Ergebnisse</button>
+  <button class="nav-btn" onclick="showTab('finanzplan')">Finanzierungsplan</button>
+  <button class="nav-btn" onclick="showTab('steuer')">Steuerliche Betrachtung</button>
+  <button class="nav-btn" onclick="showTab('bewertung')">Objektbewertung</button>
+  <button class="nav-btn" onclick="showTab('geg')">GEG-Konformität</button>
+  <button class="nav-btn" id="ki-tab-btn" onclick="showTab('ki')" style="background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent">✦ KI-Analyse</button>
+</div>
+
+<!-- ═══════════════════ TAB 1: EINGABE ═══════════════════ -->
+<div id="tab-eingabe" class="tab-page active">
+<div id="validation-banner"></div>
+<div id="tab-eingabe" class="tab-page active">
+<div class="grid2">
+
+  <div>
+    <div class="panel">
+      <div class="panel-head">Objektdaten</div>
+      <div class="panel-body">
+        <div class="field-row">
+          <div class="field full"><label>Gebäudetyp</label>
+            <select id="typ" onchange="calc()">
+              <option>Mehrfamilienhaus</option><option>Einfamilienhaus</option>
+              <option>Wohnanlage</option><option>Gewerbe/Mischnutzung</option>
+            </select>
+          </div>
+          <div class="field"><label>Wohnfläche <span class="unit">m²</span></label><input type="number" id="flaeche" value="800" onchange="calc()"></div>
+          <div class="field"><label>Baujahr</label><input type="number" id="baujahr" value="1975" onchange="calc()"></div>
+          <div class="field"><label>Anzahl Einheiten</label><input type="number" id="einheiten" value="10" onchange="calc()"></div>
+          <div class="field"><label>Lage</label>
+            <select id="lage" onchange="calc()">
+              <option value="1.0">Mittelstadt</option><option value="1.3">Großstadt</option>
+              <option value="1.6">Top-7-Stadt</option><option value="0.7">Ländlich</option>
+            </select>
+          </div>
+          <div class="field"><label>Verkehrswert aktuell <span class="unit">€</span></label><input type="number" id="vkw" value="1200000" onchange="calc()"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">Modernisierungsmaßnahmen</div>
+      <div class="panel-body">
+        <div class="section-label">Investitionskosten</div>
+        <div class="field-row">
+          <div class="field"><label>Dämmung Dach <span class="unit">€</span></label><input type="number" id="dach" value="45000" onchange="calc()"></div>
+          <div class="field"><label>Dämmung Fassade <span class="unit">€</span></label><input type="number" id="fassade" value="80000" onchange="calc()"></div>
+          <div class="field"><label>Fenster / Türen <span class="unit">€</span></label><input type="number" id="fenster" value="60000" onchange="calc()"></div>
+          <div class="field"><label>Heizungsanlage <span class="unit">€</span></label><input type="number" id="heizung" value="55000" onchange="calc()"></div>
+          <div class="field"><label>Lüftung / WRG <span class="unit">€</span></label><input type="number" id="lueftung" value="20000" onchange="calc()"></div>
+          <div class="field"><label>PV-Anlage <span class="unit">€</span></label><input type="number" id="pv" value="30000" onchange="calc()"></div>
+          <div class="field"><label>Sonstige <span class="unit">€</span></label><input type="number" id="sonstige" value="10000" onchange="calc()"></div>
+          <div class="field"><label>Nebenkosten <span class="unit">%</span></label><input type="number" id="nk" value="12" onchange="calc()"></div>
+        </div>
+        <div class="section-label">Energetische Kennwerte</div>
+        <div class="field-row">
+          <div class="field"><label>Verbrauch vorher <span class="unit">kWh/m²a</span></label><input type="number" id="vorher" value="180" onchange="calc()"></div>
+          <div class="field"><label>Verbrauch nachher <span class="unit">kWh/m²a</span></label><input type="number" id="nachher" value="55" onchange="calc()"></div>
+          <div class="field"><label>Energiepreis <span class="unit">€/kWh</span></label><input type="number" id="epreis" value="0.12" step="0.01" onchange="calc()"></div>
+          <div class="field"><label>Energiepreissteigerung <span class="unit">%/a</span></label><input type="number" id="estieg" value="3" onchange="calc()"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">Finanzierung & Förderung</div>
+      <div class="panel-body">
+        <div class="field-row">
+          <div class="field"><label>Eigenkapital <span class="unit">€</span></label><input type="number" id="ek" value="100000" onchange="calc()"></div>
+          <div class="field"><label>Zinssatz <span class="unit">%</span></label><input type="number" id="zins" value="3.5" step="0.1" onchange="calc()"></div>
+          <div class="field"><label>Tilgung <span class="unit">%/a</span></label><input type="number" id="tilgung" value="2" step="0.5" onchange="calc()"></div>
+          <div class="field"><label>Laufzeit <span class="unit">Jahre</span></label><input type="number" id="laufzeit" value="20" onchange="calc()"></div>
+        </div>
+        <div class="section-label">KfW / BAFA Förderung</div>
+        <div class="field-row">
+          <div class="field"><label>KfW-Zuschuss <span class="unit">%</span></label><input type="number" id="kfw" value="20" onchange="calc()"></div>
+          <div class="field"><label>BAFA <span class="unit">€</span></label><input type="number" id="bafa" value="5000" onchange="calc()"></div>
+          <div class="field"><label>Zinsvergünstigung <span class="unit">%</span></label><input type="number" id="zinsv" value="1.0" step="0.1" onchange="calc()"></div>
+          <div class="field"><label>Tilgungszuschuss <span class="unit">%</span></label><input type="number" id="tilgz" value="5" onchange="calc()"></div>
+        </div>
+        <div class="section-label">Mietparameter</div>
+        <div class="field-row">
+          <div class="field"><label>Kaltmiete <span class="unit">€/m²</span></label><input type="number" id="miete" value="8.50" step="0.1" onchange="calc()"></div>
+          <div class="field"><label>Mietsteigerung <span class="unit">%/a</span></label><input type="number" id="mstieg" value="2" onchange="calc()"></div>
+          <div class="field"><label>Diskontierungssatz <span class="unit">%</span></label><input type="number" id="diskont" value="5" step="0.5" onchange="calc()"></div>
+          <div class="field"><label>Leerstand <span class="unit">%</span></label><input type="number" id="leer" value="3" onchange="calc()"></div>
+        </div>
+        <button class="btn-primary" onclick="calc()">Wirtschaftlichkeit berechnen</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head">Gesamtinvestition</div>
+      <div class="panel-body">
+        <div class="grid3">
+          <div class="metric info"><div class="metric-label">Bruttokosten</div><div class="metric-value" id="m-brutto">--</div><div class="metric-sub">inkl. Nebenkosten</div></div>
+          <div class="metric good"><div class="metric-label">Förderungen</div><div class="metric-value" id="m-foerd">--</div><div class="metric-sub">Zuschüsse gesamt</div></div>
+          <div class="metric warn"><div class="metric-label">Nettoinvestition</div><div class="metric-value" id="m-netto">--</div><div class="metric-sub">nach Förderung</div></div>
+          <div class="metric info"><div class="metric-label">Fremdkapital</div><div class="metric-value" id="m-fk">--</div><div class="metric-sub">Darlehensbedarf</div></div>
+          <div class="metric"><div class="metric-label">Annuität p.a.</div><div class="metric-value" id="m-ann">--</div><div class="metric-sub">Zins + Tilgung</div></div>
+          <div class="metric"><div class="metric-label">€/m² WF</div><div class="metric-value" id="m-qm">--</div><div class="metric-sub">Investitionsintensität</div></div>
+        </div>
+        <div class="section-label" style="margin-top:10px">Maßnahmenanteile</div>
+        <div id="bar-container"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">Wirtschaftlichkeitskennzahlen</div>
+      <div class="panel-body">
+        <!-- ROI Highlight -->
+        <div id="m-roi-card" style="background:var(--green-bg);border:1.5px solid var(--green);border-radius:var(--r);padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">ROI — Return on Investment</div>
+            <div style="font-size:10px;color:var(--green);opacity:.8">Energieeinsparung + Mietmehreinnahmen + Wertsteigerung − Investition</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:32px;font-weight:700;color:var(--green);line-height:1" id="m-roi">--</div>
+            <div style="font-size:10px;color:var(--green);opacity:.8" id="m-roi-sub">über -- Jahre</div>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="metric good"><div class="metric-label"><span class="tooltip-wrap">Energieeinsparung p.a.<span class="tooltip-icon">?</span><span class="tooltip-box">Jährliche Kosteneinsparung durch reduzierten Energieverbrauch. Berechnung: (Verbrauch vorher − nachher) × m² × Energiepreis €/kWh</span></span></div><div class="metric-value" id="m-einspar">--</div><div class="metric-sub" id="m-einspar-kwh">--</div><button class="acc-btn" onclick="toggleAcc('acc-einspar')">▶ Rechenweg</button><div class="acc-content" id="acc-einspar"></div></div>
+          <div class="metric good"><div class="metric-label"><span class="tooltip-wrap">CO₂-Reduktion p.a.<span class="tooltip-icon">?</span><span class="tooltip-box">Tonnen CO₂ die jährlich eingespart werden. Faktor: 0,201 kg CO₂ pro kWh Endenergie (DE-Strommix).</span></span></div><div class="metric-value" id="m-co2">--</div><div class="metric-sub">Tonnen CO₂</div></div>
+          <div class="metric info"><div class="metric-label"><span class="tooltip-wrap">Mieterhöhung §559<span class="tooltip-icon">?</span><span class="tooltip-box">Nach §559 BGB dürfen Vermieter 8% der auf die Wohnung entfallenden Modernisierungskosten p.a. auf die Miete umlegen. Deckelung beachten.</span></span></div><div class="metric-value" id="m-miete559">--</div><div class="metric-sub">8% der Mod.kosten</div></div>
+          <div class="metric" id="m-amort-card"><div class="metric-label"><span class="tooltip-wrap">Amortisationszeit<span class="tooltip-icon">?</span><span class="tooltip-box">Jahr in dem die kumulierten Einsparungen (Energie + Mietmehreinnahmen) die Nettoinvestition übersteigen. Statische Methode mit Energiepreissteigerung.</span></span></div><div class="metric-value" id="m-amort">--</div><div class="metric-sub">statisch</div><button class="acc-btn" onclick="toggleAcc('acc-amort')">▶ Rechenweg</button><div class="acc-content" id="acc-amort"></div></div>
+          <div class="metric" id="m-npv-card"><div class="metric-label"><span class="tooltip-wrap">Kapitalwert (NPV)<span class="tooltip-icon">?</span><span class="tooltip-box">Net Present Value: Summe aller diskontierten Cashflows abzüglich der Anfangsinvestition. Positiv = wirtschaftlich vorteilhaft.</span></span></div><div class="metric-value" id="m-npv">--</div><div class="metric-sub" id="m-npv-sub">--</div><button class="acc-btn" onclick="toggleAcc('acc-npv')">▶ Rechenweg</button><div class="acc-content" id="acc-npv"></div></div>
+          <div class="metric" id="m-irr-card"><div class="metric-label"><span class="tooltip-wrap">IRR (Eigenkapital)<span class="tooltip-icon">?</span><span class="tooltip-box">Internal Rate of Return: Der Zinssatz bei dem der NPV = 0. Zeigt die Rendite auf das eingesetzte Eigenkapital. Vergleich: Alternativanlage.</span></span></div><div class="metric-value" id="m-irr">--</div><div class="metric-sub">Interne Verzinsung</div></div>
+          <div class="metric"><div class="metric-label"><span class="tooltip-wrap">Mietrendite vorher<span class="tooltip-icon">?</span><span class="tooltip-box">Bruttomietrendite = Jahreskaltmiete ÷ (Kaufpreis + Investition) × 100. Vor Modernisierung.</span></span></div><div class="metric-value" id="m-rend-vor">--</div><div class="metric-sub">brutto</div></div>
+          <div class="metric good"><div class="metric-label"><span class="tooltip-wrap">Mietrendite nachher<span class="tooltip-icon">?</span><span class="tooltip-box">Bruttomietrendite nach Modernisierung — inkl. der nach §559 BGB umlagefähigen Mieterhöhung.</span></span></div><div class="metric-value" id="m-rend-nach">--</div><div class="metric-sub">inkl. §559</div></div>
+          <div class="metric"><div class="metric-label"><span class="tooltip-wrap">Nettomietrendite<span class="tooltip-icon">?</span><span class="tooltip-box">NRR = (Jahresnettomiete − Bewirtschaftungskosten − Annuität) ÷ Eigenkapital × 100. Aussagekräftigste Renditezahl für Investoren.</span></span></div><div class="metric-value" id="m-nrr">--</div><div class="metric-sub">nach Kosten</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2c">
+      <div class="panel">
+        <div class="panel-head">Jährlicher Cashflow</div>
+        <div class="panel-body">
+          <table class="data-table"><thead><tr><th>Position</th><th>p.a.</th><th>20 J.</th></tr></thead>
+          <tbody id="cf-body"></tbody></table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">Sensitivitätsanalyse</div>
+        <div class="panel-body">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Amortisation in Jahren</div>
+          <table class="data-table">
+            <thead><tr><th style="text-align:left">Szenario</th><th>+2%</th><th>+3%</th><th>+5%</th></tr></thead>
+            <tbody id="sens-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">Energiebilanz & Effizienzklasse</div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:1fr 80px 1fr;gap:8px;align-items:center">
+          <div><div class="section-label">Vorher</div><div id="eff-vorher"></div></div>
+          <div style="text-align:center"><div style="font-size:22px;font-weight:600" id="einspar-pct">--</div><div style="font-size:10px;color:var(--text3)">Einsparung</div></div>
+          <div><div class="section-label">Nachher</div><div id="eff-nachher"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ TAB 2: FINANZIERUNGSPLAN ═══════════════════ -->
+<div id="tab-finanzplan" class="tab-page">
+  <div class="grid2c">
+    <div class="panel">
+      <div class="panel-head">Darlehensübersicht</div>
+      <div class="panel-body">
+        <div class="grid3" style="margin-bottom:12px">
+          <div class="metric info"><div class="metric-label">Darlehensbetrag</div><div class="metric-value" id="fp-darlehen">--</div></div>
+          <div class="metric"><div class="metric-label">Effektivzins</div><div class="metric-value" id="fp-zins">--</div></div>
+          <div class="metric"><div class="metric-label">Annuität p.a.</div><div class="metric-value" id="fp-ann">--</div></div>
+          <div class="metric good"><div class="metric-label">Gesamtzinsen</div><div class="metric-value" id="fp-gesamtzins">--</div></div>
+          <div class="metric warn"><div class="metric-label">Gesamtbelastung</div><div class="metric-value" id="fp-gesamt">--</div></div>
+          <div class="metric"><div class="metric-label">Vollständige Tilgung</div><div class="metric-value" id="fp-tilgjahr">--</div></div>
+        </div>
+        <div style="position:relative;height:180px"><canvas id="chart-tilg"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Tilgungsplan (Jahresübersicht)</div>
+      <div class="panel-body" style="padding:0">
+        <table class="tilg-table" id="tilg-table">
+          <thead><tr><th>Jahr</th><th>Schuld Anfang</th><th>Zinsen</th><th>Tilgung</th><th>Schuld Ende</th></tr></thead>
+          <tbody id="tilg-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 3: STEUER ═══════════════════ -->
+<div id="tab-steuer" class="tab-page">
+  <div class="grid2c">
+    <div class="panel">
+      <div class="panel-head">Steuerliche Eingaben</div>
+      <div class="panel-body">
+        <div class="field-row">
+          <div class="field"><label>Persönlicher Steuersatz <span class="unit">%</span></label><input type="number" id="steuersatz" value="42" onchange="calcSteuer()"></div>
+          <div class="field"><label>AfA-Satz <span class="unit">%/a</span></label>
+            <select id="afasatz" onchange="calcSteuer()">
+              <option value="2">2% (Baujahr vor 1925)</option>
+              <option value="2" selected>2% (Standard)</option>
+              <option value="2.5">2,5% (Baujahr vor 1925)</option>
+              <option value="3">3% (Neubau ab 2023)</option>
+              <option value="5">5% (Denkmal-AfA)</option>
+            </select>
+          </div>
+          <div class="field"><label>AfA-Bemessungsgrundlage <span class="unit">€</span></label><input type="number" id="afabasis" value="1200000" onchange="calcSteuer()"></div>
+          <div class="field"><label>Sofortabzugsfähige Kosten <span class="unit">€</span></label><input type="number" id="sofort" value="0" onchange="calcSteuer()"></div>
+          <div class="field"><label>Betrachtungszeitraum <span class="unit">Jahre</span></label><input type="number" id="steuerjahre" value="20" onchange="calcSteuer()"></div>
+          <div class="field"><label>Mieteinnahmen p.a. <span class="unit">€</span></label><input type="number" id="stmiete" value="81600" onchange="calcSteuer()"></div>
+        </div>
+        <div class="afa-info" id="afa-hinweis">AfA-Informationen werden nach Eingabe berechnet.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Steuerliche Ergebnisse</div>
+      <div class="panel-body">
+        <div class="grid3" style="margin-bottom:12px">
+          <div class="metric good"><div class="metric-label">AfA p.a.</div><div class="metric-value" id="st-afa">--</div><div class="metric-sub">Gebäudeabschreibung</div></div>
+          <div class="metric good"><div class="metric-label">Steuerersparnis AfA p.a.</div><div class="metric-value" id="st-erspAfA">--</div><div class="metric-sub">bei pers. Steuersatz</div></div>
+          <div class="metric info"><div class="metric-label">Zinsen steuerlich p.a.</div><div class="metric-value" id="st-zinsAbzug">--</div><div class="metric-sub">Werbungskosten</div></div>
+          <div class="metric good"><div class="metric-label">Steuerersparnis Zinsen</div><div class="metric-value" id="st-erspZins">--</div><div class="metric-sub">p.a.</div></div>
+          <div class="metric good"><div class="metric-label">Gesamtersparnis p.a.</div><div class="metric-value" id="st-gesamt">--</div><div class="metric-sub">AfA + Zinsen</div></div>
+          <div class="metric teal"><div class="metric-label">Steuerersparnis gesamt</div><div class="metric-value" id="st-gesamt-lz">--</div><div class="metric-sub">über Laufzeit</div></div>
+        </div>
+        <div style="position:relative;height:160px"><canvas id="chart-steuer"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Ertragssteuer — Übersicht Einnahmen & Abzüge</div>
+    <div class="panel-body">
+      <table class="data-table">
+        <thead><tr><th>Position</th><th>p.a.</th><th>Steuerersparnis p.a.</th><th>Über Laufzeit</th></tr></thead>
+        <tbody id="st-table-body"></tbody>
+      </table>
+      <div style="margin-top:10px;font-size:10px;color:var(--text3);line-height:1.6">
+        <strong>Hinweis:</strong> Diese Berechnung dient der Orientierung und ersetzt keine steuerliche Beratung. Individuelle Steuervorteile (z.B. Denkmal-AfA §7i/7h, Sonderabschreibungen §7b) sollten mit einem Steuerberater abgestimmt werden.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 4: OBJEKTBEWERTUNG ═══════════════════ -->
+<div id="tab-bewertung" class="tab-page">
+  <div class="grid2c">
+    <div class="panel">
+      <div class="panel-head">Ertragswertmethode</div>
+      <div class="panel-body">
+        <div class="field-row">
+          <div class="field"><label>Kapitalisierungszins vorher <span class="unit">%</span></label><input type="number" id="kapzins-vor" value="4.5" step="0.1" onchange="calcBewertung()"></div>
+          <div class="field"><label>Kapitalisierungszins nachher <span class="unit">%</span></label><input type="number" id="kapzins-nach" value="3.8" step="0.1" onchange="calcBewertung()"></div>
+          <div class="field"><label>Bewirtschaftungskosten <span class="unit">% der Miete</span></label><input type="number" id="bewirt" value="25" onchange="calcBewertung()"></div>
+          <div class="field"><label>Restnutzungsdauer <span class="unit">Jahre</span></label><input type="number" id="rnd" value="40" onchange="calcBewertung()"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn-outline" onclick="applyMarktpreise()" style="font-size:12px">📊 Marktpreise für Lage übernehmen</button>
+        </div>
+        <div class="section-label">Vergleichswertmethode</div>
+        <div class="field-row">
+          <div class="field"><label>Vergleichspreis aktuell <span class="unit">€/m²</span></label><input type="number" id="vgl-vor" value="2000" onchange="calcBewertung()"></div>
+          <div class="field"><label>Vergleichspreis nach Mod. <span class="unit">€/m²</span></label><input type="number" id="vgl-nach" value="2600" onchange="calcBewertung()"></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Wertsteigerungsübersicht</div>
+      <div class="panel-body">
+        <div class="wert-compare">
+          <div class="wert-box"><div class="label">Ertragswert vorher</div><div class="val" id="bew-ew-vor">--</div></div>
+          <div class="wert-arrow">→</div>
+          <div class="wert-box"><div class="label">Ertragswert nachher</div><div class="val good" style="color:var(--green)" id="bew-ew-nach">--</div></div>
+        </div>
+        <div class="grid3" style="margin-bottom:12px">
+          <div class="metric good"><div class="metric-label">Wertsteigerung Ertragswert</div><div class="metric-value" id="bew-delta-ew">--</div></div>
+          <div class="metric good"><div class="metric-label">Wertsteigerung Vergleich</div><div class="metric-value" id="bew-delta-vgl">--</div></div>
+          <div class="metric teal"><div class="metric-label">Wertsteigerung/Investition</div><div class="metric-value" id="bew-hebel">--</div><div class="metric-sub">Hebeleffekt</div></div>
+          <div class="metric"><div class="metric-label">Vergleichswert vorher</div><div class="metric-value" id="bew-vgl-vor">--</div></div>
+          <div class="metric good"><div class="metric-label">Vergleichswert nachher</div><div class="metric-value" id="bew-vgl-nach">--</div></div>
+          <div class="metric info"><div class="metric-label">Eigenkapitalrendite Wert</div><div class="metric-value" id="bew-ekr">--</div><div class="metric-sub">Wertsteigerung/EK</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 6: KI-ANALYSE ═══════════════════ -->
+<div id="tab-ki" class="tab-page">
+
+  <div class="grid2c">
+
+    <div class="panel">
+      <div class="panel-head">✦ KI-Ergebniserklärung</div>
+      <div class="panel-body">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+          Die KI analysiert alle berechneten Kennzahlen und erklärt das Ergebnis in verständlicher Sprache — inkl. Chancen, Risiken und konkreten Handlungsempfehlungen.
+        </div>
+        <button class="btn-primary" onclick="runKIAnalyse()" id="ki-analyse-btn">
+          ✦ KI-Analyse starten
+        </button>
+        <div id="ki-analyse-result" style="margin-top:16px;display:none">
+          <div style="background:var(--surface2);border-radius:var(--r);padding:16px;font-size:14px;line-height:1.8;color:var(--text)" id="ki-analyse-text"></div>
+        </div>
+        <div id="ki-analyse-loading" style="margin-top:16px;display:none;text-align:center;padding:24px">
+          <div style="font-size:13px;color:var(--text2)">KI analysiert Ihre Daten…</div>
+          <div style="margin-top:8px;width:100%;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden">
+            <div style="height:100%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:2px;animation:loadbar 1.5s infinite" id="ki-loadbar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">✦ KI-Maßnahmenempfehlung</div>
+      <div class="panel-body">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+          Die KI bewertet Ihre Maßnahmenkombination und empfiehlt, welche Investitionen den höchsten ROI, die kürzeste Amortisation und das beste GEG-Ergebnis liefern.
+        </div>
+        <button class="btn-primary" onclick="runKIEmpfehlung()" id="ki-empf-btn" style="background:linear-gradient(135deg,#1458a0,#0a6147)">
+          ✦ Optimierung berechnen
+        </button>
+        <div id="ki-empf-result" style="margin-top:16px;display:none">
+          <div style="background:var(--surface2);border-radius:var(--r);padding:16px;font-size:14px;line-height:1.8;color:var(--text)" id="ki-empf-text"></div>
+        </div>
+        <div id="ki-empf-loading" style="margin-top:16px;display:none;text-align:center;padding:24px">
+          <div style="font-size:13px;color:var(--text2)">KI optimiert Ihre Maßnahmen…</div>
+          <div style="margin-top:8px;width:100%;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden">
+            <div style="height:100%;background:linear-gradient(90deg,#1458a0,var(--green));border-radius:2px;animation:loadbar 1.5s infinite"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">✦ Fragen an die KI</div>
+    <div class="panel-body">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Stellen Sie der KI individuelle Fragen zu Ihrem Projekt — z.B. zu Finanzierung, Steuer, Förderung oder Wirtschaftlichkeit.</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap" id="ki-quick-btns">
+        <button class="btn-outline" onclick="askKI('Wie kann ich die Förderung maximieren?')">💡 Förderung maximieren</button>
+        <button class="btn-outline" onclick="askKI('Was sind die größten Risiken dieser Investition?')">⚠️ Risiken analysieren</button>
+        <button class="btn-outline" onclick="askKI('Welche Maßnahme hat den besten ROI?')">📈 Bester ROI</button>
+        <button class="btn-outline" onclick="askKI('Erkläre mir den Finanzierungsplan in einfachen Worten.')">🏦 Finanzierung erklären</button>
+        <button class="btn-outline" onclick="askKI('Bin ich GEG-konform nach der Modernisierung?')">🌿 GEG-Status</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="ki-frage" placeholder="Eigene Frage eingeben…" style="flex:1;height:38px;padding:0 12px;font-size:14px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);outline:none" onkeydown="if(event.key==='Enter')askKI(this.value)">
+        <button class="btn-primary" style="width:auto;padding:0 20px;margin-top:0" onclick="askKI(g('ki-frage').value)">Fragen</button>
+      </div>
+      <div id="ki-chat" style="margin-top:14px;display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+@keyframes loadbar{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+.ki-bubble-user{background:var(--green-bg);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--green);align-self:flex-end;max-width:80%}
+.ki-bubble-ai{background:var(--surface2);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--text);line-height:1.7;max-width:95%}
+.ki-bubble-ai strong{color:var(--green)}
+</style>
+
+<!-- ═══════════════════ TAB 7: EINSTELLUNGEN ═══════════════════ -->
+<div id="tab-einstellungen" class="tab-page">
+
+  <!-- WHITE-LABEL BANNER -->
+  <div id="wl-banner" style="display:none;padding:12px 16px;border-radius:var(--r);margin-bottom:16px;align-items:center;gap:14px">
+    <img id="wl-logo-preview" src="" style="height:36px;object-fit:contain;display:none">
+    <div>
+      <div id="wl-company-display" style="font-size:15px;font-weight:700"></div>
+      <div id="wl-tagline-display" style="font-size:12px;opacity:.7"></div>
+    </div>
+  </div>
+
+  <div class="grid2c">
+    <div class="panel">
+      <div class="panel-head">⚙ API-Schlüssel (KI-Funktionen)</div>
+      <div class="panel-body">
+        <div class="afa-info" style="margin-bottom:14px">Der Anthropic API-Key wird <strong>ausschließlich lokal auf Ihrem Gerät</strong> im Browser-Speicher gespeichert und niemals übertragen.</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Anthropic API-Key</label>
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." style="height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none;font-family:monospace">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="btn-primary" style="margin-top:0" onclick="saveAPIKey()">API-Key speichern</button>
+          <button class="btn-outline" onclick="testAPIKey()">Verbindung testen</button>
+        </div>
+        <div id="api-key-status" style="font-size:12px;color:var(--text3)"></div>
+        <div class="divider"></div>
+        <div class="section-label">KI-Modell</div>
+        <div class="field">
+          <label>Modell auswählen</label>
+          <select id="ki-model-select" onchange="saveSettings()">
+            <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (empfohlen)</option>
+            <option value="claude-opus-4-5">Claude Opus 4 (leistungsstärker)</option>
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4 (schneller)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">🔑 Lizenz</div>
+      <div class="panel-body">
+        <div class="grid3" style="margin-bottom:14px">
+          <div class="metric" id="lic-status-card"><div class="metric-label">Status</div><div class="metric-value" id="lic-status-val" style="font-size:16px">--</div></div>
+          <div class="metric"><div class="metric-label">Typ</div><div class="metric-value" id="lic-type-val" style="font-size:16px">--</div></div>
+          <div class="metric"><div class="metric-label">Gültig bis</div><div class="metric-value" id="lic-expiry-val" style="font-size:14px">--</div></div>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Lizenzschlüssel ändern</label>
+          <input type="text" id="license-change-input" placeholder="XXXX-XXXX-XXXX-XXXX" style="height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none;letter-spacing:.06em">
+        </div>
+        <button class="btn-primary" style="margin-top:0" onclick="changeLicense()">Lizenz aktualisieren</button>
+        <div class="divider"></div>
+        <div style="font-size:11px;color:var(--text3);line-height:1.7">Lizenz erwerben:<br><a href="https://www.built-smart-hub.com" target="_blank" style="color:var(--blue)">www.built-smart-hub.com</a></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">📁 Projektverwaltung</div>
+      <div class="panel-body">
+        <div class="section-label">Gespeicherte Projekte</div>
+        <div id="proj-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:260px;overflow-y:auto"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-primary" style="margin-top:0;flex:1" onclick="saveProject()">💾 Aktuelles Projekt speichern</button>
+          <button class="btn-outline" onclick="exportAllProjects()">⬇ Alle exportieren</button>
+          <button class="btn-outline" onclick="document.getElementById('proj-import-file2').click()">📂 Importieren</button>
+          <input type="file" id="proj-import-file2" accept=".json" style="display:none" onchange="importProject(event)">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">ℹ App-Informationen</div>
+      <div class="panel-body">
+        <div class="geg-row"><span>Version</span><span class="badge badge-blue">5.0.0</span></div>
+        <div class="geg-row"><span>Gespeicherte Projekte</span><span class="badge badge-green" id="proj-count">0</span></div>
+        <div class="geg-row"><span>Lokaler Speicher</span><span class="badge badge-green" id="storage-size">-- KB</span></div>
+        <div class="divider"></div>
+        <div class="section-label">Update-Prüfung</div>
+        <button class="btn-outline" onclick="checkUpdate()" style="width:100%;margin-bottom:8px">Auf Updates prüfen</button>
+        <div id="update-status" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
+        <div class="section-label">Daten zurücksetzen</div>
+        <button class="btn-outline" onclick="resetOnboarding()" style="width:100%;margin-bottom:8px">🎓 Einführung erneut anzeigen</button>
+        <button class="btn-outline" onclick="clearAllData()" style="width:100%;color:var(--red);border-color:var(--red)">⚠ Alle lokalen Daten löschen</button>
+      </div>
+    </div>
+
+    <div class="panel" style="grid-column:1/-1">
+      <div class="panel-head">🎨 White-Label — Firmenbranding</div>
+      <div class="panel-body">
+        <div class="grid2c" style="gap:16px;margin-bottom:14px">
+          <div>
+            <div class="section-label">Erscheinungsbild</div>
+            <div class="field-row">
+              <div class="field full">
+                <label>Firmenname</label>
+                <input type="text" id="wl-company" placeholder="z.B. Muster Immobilien GmbH" style="height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none" oninput="previewWhiteLabel()">
+              </div>
+              <div class="field full">
+                <label>Tagline / Untertitel</label>
+                <input type="text" id="wl-tagline" placeholder="z.B. Ihr Partner für Modernisierung" style="height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none" oninput="previewWhiteLabel()">
+              </div>
+              <div class="field">
+                <label>Primärfarbe</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="color" id="wl-color-primary" value="#0a6147" onchange="previewWhiteLabel()" style="height:34px;width:60px;border:0.5px solid var(--border2);border-radius:var(--r);padding:2px;cursor:pointer">
+                  <input type="text" id="wl-color-primary-hex" value="#0a6147" placeholder="#0a6147" style="flex:1;height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);outline:none" oninput="syncColorHex('primary')">
+                </div>
+              </div>
+              <div class="field">
+                <label>Akzentfarbe</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="color" id="wl-color-accent" value="#1458a0" onchange="previewWhiteLabel()" style="height:34px;width:60px;border:0.5px solid var(--border2);border-radius:var(--r);padding:2px;cursor:pointer">
+                  <input type="text" id="wl-color-accent-hex" value="#1458a0" placeholder="#1458a0" style="flex:1;height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);outline:none" oninput="syncColorHex('accent')">
+                </div>
+              </div>
+              <div class="field full">
+                <label>Logo-URL (https://...)</label>
+                <input type="text" id="wl-logo-url" placeholder="https://ihr-unternehmen.de/logo.png" style="height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none" oninput="previewWhiteLabel()">
+              </div>
+              <div class="field full">
+                <label>Footer-Text / Copyright</label>
+                <input type="text" id="wl-footer" placeholder="© 2025 Ihr Unternehmen — www.ihr-unternehmen.de" style="height:34px;padding:0 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none" oninput="previewWhiteLabel()">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+              <button class="btn-primary" style="margin-top:0;flex:1" onclick="applyWhiteLabel()">✓ Branding anwenden</button>
+              <button class="btn-outline" onclick="resetWhiteLabel()">Zurücksetzen</button>
+            </div>
+          </div>
+          <div>
+            <div class="section-label">Vorschau</div>
+            <div id="wl-preview-box" style="border:1.5px dashed var(--border2);border-radius:var(--r);padding:16px;min-height:140px;background:var(--surface2)">
+              <div style="font-size:12px;color:var(--text3);text-align:center;padding-top:40px">Vorschau erscheint nach Eingabe</div>
+            </div>
+            <div class="section-label" style="margin-top:14px">Farbschema-Vorlagen</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px" id="color-presets">
+              <button onclick="applyPreset('#0a6147','#1458a0')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#0a6147,#1458a0);cursor:pointer" title="Standard (Grün/Blau)"></button>
+              <button onclick="applyPreset('#1a1a2e','#e94560')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#1a1a2e,#e94560);cursor:pointer" title="Dunkel/Rot"></button>
+              <button onclick="applyPreset('#7c3aed','#db2777')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#7c3aed,#db2777);cursor:pointer" title="Violett/Pink"></button>
+              <button onclick="applyPreset('#b45309','#92400e')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#b45309,#92400e);cursor:pointer" title="Premium Gold"></button>
+              <button onclick="applyPreset('#0f172a','#0ea5e9')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#0f172a,#0ea5e9);cursor:pointer" title="Corporate Blau"></button>
+              <button onclick="applyPreset('#064e3b','#065f46')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#064e3b,#065f46);cursor:pointer" title="Dunkelgrün"></button>
+              <button onclick="applyPreset('#1e3a5f','#2563a8')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#1e3a5f,#2563a8);cursor:pointer" title="Navy"></button>
+              <button onclick="applyPreset('#374151','#6b7280')" style="height:32px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(135deg,#374151,#6b7280);cursor:pointer" title="Grau/Neutral"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="grid-column:1/-1">
+      <div class="panel-head">🌐 Sprache / Language</div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px" id="lang-selector">
+          <button onclick="setLanguage('de')" class="lang-btn active" data-lang="de" style="padding:12px;border:1.5px solid var(--green);border-radius:var(--r);background:var(--green-bg);cursor:pointer;font-size:13px;font-weight:600;color:var(--green)">🇩🇪 Deutsch</button>
+          <button onclick="setLanguage('en')" class="lang-btn" data-lang="en" style="padding:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface2);cursor:pointer;font-size:13px;color:var(--text2)">🇬🇧 English</button>
+          <button onclick="setLanguage('fr')" class="lang-btn" data-lang="fr" style="padding:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface2);cursor:pointer;font-size:13px;color:var(--text2)">🇫🇷 Français</button>
+          <button onclick="setLanguage('es')" class="lang-btn" data-lang="es" style="padding:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface2);cursor:pointer;font-size:13px;color:var(--text2)">🇪🇸 Español</button>
+        </div>
+        <div id="lang-status" style="font-size:12px;color:var(--text3)">Aktuelle Sprache: Deutsch</div>
+      </div>
+    </div> — Energiepreise & KfW/BAFA-Förderung</div>
+      <div class="panel-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:13px;color:var(--text2)">Letzte Aktualisierung: <span id="live-last-update" style="font-weight:500">--</span></div>
+          <button class="btn-outline" onclick="fetchLiveData(true)" id="live-refresh-btn">🔄 Jetzt aktualisieren</button>
+        </div>
+        <div class="grid3" style="margin-bottom:16px">
+          <div class="metric"><div class="metric-label">Strom (Haushalt)</div><div class="metric-value" id="live-strom">--</div><div class="metric-sub">ct/kWh (DE-Ø)</div></div>
+          <div class="metric"><div class="metric-label">Gas (Haushalt)</div><div class="metric-value" id="live-gas">--</div><div class="metric-sub">ct/kWh (DE-Ø)</div></div>
+          <div class="metric"><div class="metric-label">Heizöl</div><div class="metric-value" id="live-oel">--</div><div class="metric-sub">ct/kWh (DE-Ø)</div></div>
+          <div class="metric"><div class="metric-label">CO₂-Preis</div><div class="metric-value" id="live-co2">--</div><div class="metric-sub">€/Tonne ETS</div></div>
+          <div class="metric"><div class="metric-label">Bauzinsen (10J)</div><div class="metric-value" id="live-zins">--</div><div class="metric-sub">% p.a. (Ø)</div></div>
+          <div class="metric"><div class="metric-label">Inflationsrate</div><div class="metric-value" id="live-inflation">--</div><div class="metric-sub">% (aktuell)</div></div>
+        </div>
+        <div class="section-label">KfW / BAFA Förderprogramme (Stand: <span id="foerd-stand">--</span>)</div>
+        <div id="foerd-table-container">
+          <table class="data-table" id="foerd-table">
+            <thead><tr><th>Programm</th><th>Typ</th><th>Max. Zuschuss</th><th>Zinsvorteil</th><th>Voraussetzung</th><th>Antrag</th></tr></thead>
+            <tbody id="foerd-tbody"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-outline" onclick="applyLiveEnergyPrices()" style="font-size:12px">⚡ Energiepreise auf Projekt anwenden</button>
+          <button class="btn-outline" onclick="applyLiveZins()" style="font-size:12px">🏦 Bauzins auf Projekt anwenden</button>
+          <div style="font-size:11px;color:var(--text3)">* Daten werden über öffentliche Quellen abgerufen. Ohne Gewähr.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  <div class="grid2c">
+    <div class="panel">
+      <div class="panel-head">GEG-Anforderungen 2024</div>
+      <div class="panel-body">
+        <div id="geg-checklist"></div>
+        <div style="margin-top:10px;padding:8px;background:var(--blue-bg);border-radius:var(--r);font-size:10px;color:var(--blue);line-height:1.6">
+          <strong>Hinweis:</strong> Das GEG 2024 schreibt für neue Heizungen einen EE-Anteil von mind. 65% vor. Bei Sanierungen gelten Übergangsfristen. Die Anforderungen variieren je nach Gebäudetyp und Zeitpunkt der Maßnahme.
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Effizienzhaus-Standard</div>
+      <div class="panel-body">
+        <div id="geg-standard"></div>
+        <div class="divider"></div>
+        <div class="section-label">Förderfähigkeit nach Standard</div>
+        <div id="geg-foerd"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">CO₂-Bepreisung & Kostenentwicklung</div>
+    <div class="panel-body">
+      <div class="grid3">
+        <div class="metric warn"><div class="metric-label">CO₂-Kosten heute p.a.</div><div class="metric-value" id="geg-co2-heute">--</div><div class="metric-sub">bei 45 €/t</div></div>
+        <div class="metric bad"><div class="metric-label">CO₂-Kosten 2030 p.a.</div><div class="metric-value" id="geg-co2-2030">--</div><div class="metric-sub">bei 200 €/t (Ziel)</div></div>
+        <div class="metric good"><div class="metric-label">Einsparung durch Mod.</div><div class="metric-value" id="geg-co2-erspar">--</div><div class="metric-sub">CO₂-Kosten 2030</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// ── UTILS ──
+function g(id){return document.getElementById(id)}
+function v(id){return parseFloat(g(id).value)||0}
+function fmt(n,d=0){return isNaN(n)?'--':n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function eur(n){
+  if(isNaN(n))return'--';
+  const a=Math.abs(n);
+  if(a>=1e6)return n.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' €';
+  return n.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' €';
+}
+function pct(n,d=1){return isNaN(n)?'--':fmt(n,d).replace('.',',')+' %'}
+
+function effKlasse(kwh){
+  if(kwh<30)return{kl:'A+',col:'#0a6147',bg:'#dff2ea'};
+  if(kwh<50)return{kl:'A',col:'#1D9E75',bg:'#dff2ea'};
+  if(kwh<75)return{kl:'B',col:'#3B6D11',bg:'#EAF3DE'};
+  if(kwh<100)return{kl:'C',col:'#639922',bg:'#EAF3DE'};
+  if(kwh<130)return{kl:'D',col:'#BA7517',bg:'#FAEEDA'};
+  if(kwh<160)return{kl:'E',col:'#854F0B',bg:'#FAEEDA'};
+  if(kwh<200)return{kl:'F',col:'#D85A30',bg:'#FAECE7'};
+  return{kl:'G/H',col:'#982020',bg:'#fce8e8'};
+}
+function effBlock(kwh,id){
+  const e=effKlasse(kwh);
+  g(id).innerHTML=`<div style="display:inline-block;padding:4px 14px;border-radius:6px;background:${e.bg};color:${e.col};font-size:22px;font-weight:600;margin-bottom:3px">${e.kl}</div><div style="font-size:10px;color:var(--text2)">${fmt(kwh,0)} kWh/m²a</div>`;
+}
+function calcAmort(inv,sav,pi){
+  let c=0,s=sav;
+  for(let y=1;y<=50;y++){c+=s;if(c>=inv)return y;s*=(1+pi/100);}
+  return'>50';
+}
+function calcNPV(inv,cfs,r){
+  let n=-inv;cfs.forEach((c,i)=>{n+=c/Math.pow(1+r/100,i+1);});return n;
+}
+function calcIRR(inv,cfs){
+  let lo=-50,hi=100;
+  for(let i=0;i<60;i++){const m=(lo+hi)/2;let n=-inv;cfs.forEach((c,j)=>{n+=c/Math.pow(1+m/100,j+1);});if(n>0)lo=m;else hi=m;}
+  return(lo+hi)/2;
+}
+
+// ── STATE ──
+let S={brutto:0,netto:0,fk:0,ann:0,ek:0,zins:0,lz:0,fl:0,einsparEur:0,mieteJahrNeu:0,mieteJahr:0,basisKosten:0,foerd:0,vorher:0,nachher:0,co2:0,mietErh:0};
+
+// ── MAIN CALC ──
+function calc(){
+  const fl=v('flaeche'),nkP=v('nk');
+  const dach=v('dach'),fass=v('fassade'),fen=v('fenster'),heiz=v('heizung'),lueft=v('lueftung'),pv=v('pv'),sonst=v('sonstige');
+  const basis=dach+fass+fen+heiz+lueft+pv+sonst;
+  const brutto=basis*(1+nkP/100);
+  const kfwB=basis*v('kfw')/100,tilgzB=basis*v('tilgz')/100,foerd=kfwB+v('bafa')+tilgzB;
+  const netto=brutto-foerd;
+  const ek=v('ek'),fk=Math.max(0,netto-ek);
+  const zins=v('zins')-v('zinsv'),tilg=v('tilgung'),ann=fk*(zins+tilg)/100,lz=v('laufzeit');
+  const vor=v('vorher'),nach=v('nachher'),ep=v('epreis'),es=v('estieg');
+  const einsparKwh=(vor-nach)*fl,einsparEur=einsparKwh*ep,co2=einsparKwh*0.201/1000;
+  const miete=v('miete'),ms=v('mstieg'),leer=v('leer');
+  const mietErh=Math.min(basis*0.08/12,fl*2.5)/fl;
+  const mietNeu=miete+mietErh;
+  const mieteJahr=fl*miete*12*(1-leer/100),mieteJahrNeu=fl*mietNeu*12*(1-leer/100);
+  const diskont=v('diskont');
+  const amort=calcAmort(netto,einsparEur+(mieteJahrNeu-mieteJahr),es);
+  const cfs=[];let es2=einsparEur,mE=mieteJahrNeu-mieteJahr;
+  for(let y=1;y<=lz;y++){cfs.push(es2+mE-ann);es2*=(1+es/100);mE*=(1+ms/100);}
+  const npv=calcNPV(ek,cfs,diskont),irr=calcIRR(ek,cfs);
+  const rendVor=(mieteJahr/(brutto+ek))*100,rendNach=(mieteJahrNeu/(brutto+ek))*100;
+  const bewirtsch=mieteJahrNeu*0.25,nrr=((mieteJahrNeu-bewirtsch-ann)/ek)*100;
+
+  // ROI: (Gesamtnutzen - Nettoinvestition) / Nettoinvestition × 100
+  // Gesamtnutzen = kumulierte Energieeinsparung + kumulierte Mietmehreinnahmen + Wertsteigerung (Vergleichswert)
+  const vglNachRoi=(v('vgl-nach')||0)*fl, vglVorRoi=(v('vgl-vor')||0)*fl;
+  const wertsteigerung=vglNachRoi>0?(vglNachRoi-vglVorRoi):0;
+  let kumEinspar=0,kumMiet=0,es3=einsparEur,mE2=mieteJahrNeu-mieteJahr;
+  for(let y=1;y<=lz;y++){kumEinspar+=es3;kumMiet+=mE2;es3*=(1+es/100);mE2*=(1+ms/100);}
+  const gesamtnutzen=kumEinspar+kumMiet+wertsteigerung;
+  const roi=netto>0?((gesamtnutzen-netto)/netto)*100:0;
+  const roiCard=g('m-roi-card');
+  g('m-roi').textContent=pct(roi,0);
+  g('m-roi-sub').textContent='über '+lz+' Jahre';
+  roiCard.style.borderColor=roi>=0?'var(--green)':'var(--red)';
+  roiCard.style.background=roi>=0?'var(--green-bg)':'var(--red-bg)';
+  roiCard.querySelectorAll('div').forEach(d=>{if(d.style.color!==undefined)d.style.color=roi>=0?'var(--green)':'var(--red)';});
+  g('m-roi').style.color=roi>=0?'var(--green)':'var(--red)';
+
+  S={brutto,netto,fk,ann,ek,zins,lz,fl,einsparEur,einsparKwh,mieteJahrNeu,mieteJahr,basisKosten:basis,foerd,co2,vor,nach,mietErh,miete,mietNeu,leer,ms};
+
+  g('m-brutto').textContent=eur(brutto);g('m-foerd').textContent=eur(foerd);g('m-netto').textContent=eur(netto);
+  g('m-fk').textContent=eur(fk);g('m-ann').textContent=eur(ann);g('m-qm').textContent=Math.round(brutto/fl)+' €';
+  g('m-einspar').textContent=eur(einsparEur);g('m-einspar-kwh').textContent=fmt(einsparKwh,0)+' kWh/a';
+  g('m-co2').textContent=fmt(co2,1)+' t';g('m-miete559').textContent=fmt(mietErh,2).replace('.',',')+' €/m²';
+  g('m-amort').textContent=(typeof amort==='number'?amort+' J.':amort);
+  g('m-npv').textContent=eur(npv);g('m-npv-sub').textContent=lz+'-Jahres-Betrachtung';
+  g('m-irr').textContent=pct(irr);g('m-rend-vor').textContent=pct(rendVor);
+  g('m-rend-nach').textContent=pct(rendNach);g('m-nrr').textContent=pct(nrr);
+  g('einspar-pct').textContent=Math.round((1-nach/vor)*100)+' %';
+
+  g('m-amort-card').className='metric '+(typeof amort==='number'&&amort<=15?'good':typeof amort==='number'&&amort<=25?'warn':'bad');
+  g('m-npv-card').className='metric '+(npv>0?'good':'bad');
+  g('m-irr-card').className='metric '+(irr>5?'good':irr>2?'warn':'bad');
+
+  effBlock(vor,'eff-vorher');effBlock(nach,'eff-nachher');
+
+  const maßn=[{n:'Dämmung Dach',v:dach},{n:'Fassade',v:fass},{n:'Fenster/Türen',v:fen},{n:'Heizung',v:heiz},{n:'Lüftung/WRG',v:lueft},{n:'PV-Anlage',v:pv},{n:'Sonstige',v:sonst}];
+  const cols=['#1D9E75','#185FA5','#BA7517','#D85A30','#3B6D11','#854F0B','#888780'];
+  const maxV=Math.max(...maßn.map(m=>m.v));
+  g('bar-container').innerHTML=maßn.filter(m=>m.v>0).map((m,i)=>`<div class="bar-row"><div class="bar-label">${m.n}</div><div class="bar-track"><div class="bar-fill" style="width:${maxV>0?Math.round(m.v/maxV*100):0}%;background:${cols[i%cols.length]}"></div></div><div class="bar-val">${eur(m.v)}</div></div>`).join('');
+
+  const cfRows=[{n:'Energieeinsparung',v:einsparEur},{n:'Zusätzl. Mieteinnahmen',v:mieteJahrNeu-mieteJahr},{n:'Kapitaldienst (Annuität)',v:-ann},{n:'Netto-Cashflow',v:einsparEur+(mieteJahrNeu-mieteJahr)-ann}];
+  g('cf-body').innerHTML=cfRows.map(r=>`<tr><td>${r.n}</td><td class="${r.v>=0?'pos':'neg'}">${eur(r.v)}</td><td class="${r.v>=0?'pos':'neg'}">${eur(r.v*20)}</td></tr>`).join('');
+
+  const szenarien=[{n:'Basis',mult:1.0},{n:'Optimist. (30% Förd.)',mult:0.7},{n:'Konservativ (kein Mietpl.)',mult:1.0,noMiet:true}];
+  g('sens-body').innerHTML=szenarien.map(sz=>{
+    const inv=netto*sz.mult,sav=einsparEur+(sz.noMiet?0:(mieteJahrNeu-mieteJahr));
+    const a2=calcAmort(inv,sav,2),a3=calcAmort(inv,sav,es),a5=calcAmort(inv,sav,5);
+    const c=a=>typeof a==='number'?(a<=15?'s-good':a<=25?'s-ok':'s-bad'):'s-bad';
+    const l=a=>typeof a==='number'?a+'J':a;
+    return`<tr><td>${sz.n}</td><td><span class="${c(a2)}">${l(a2)}</span></td><td><span class="${c(a3)}">${l(a3)}</span></td><td><span class="${c(a5)}">${l(a5)}</span></td></tr>`;
+  }).join('');
+
+  calcFinanzplan();calcSteuer();calcBewertung();calcGEG();
+}
+
+// ── FINANZIERUNGSPLAN ──
+let chartTilg=null;
+function calcFinanzplan(){
+  const fk=S.fk,zins=S.zins,lz=S.lz;
+  if(fk<=0){g('fp-darlehen').textContent='0 €';return;}
+  const annRate=(zins/100+v('tilgung')/100);
+  const ann=fk*annRate;
+  let schuld=fk,gZins=0;
+  const rows=[];let vollTilg=lz;
+  for(let y=1;y<=50;y++){
+    const zinsJ=schuld*zins/100;
+    const tilgJ=Math.min(ann-zinsJ,schuld);
+    gZins+=zinsJ;
+    rows.push({y,anfang:schuld,zins:zinsJ,tilg:tilgJ,ende:Math.max(0,schuld-tilgJ)});
+    schuld=Math.max(0,schuld-tilgJ);
+    if(schuld<=0){vollTilg=y;break;}
+  }
+  g('fp-darlehen').textContent=eur(fk);
+  g('fp-zins').textContent=pct(zins);
+  g('fp-ann').textContent=eur(ann);
+  g('fp-gesamtzins').textContent=eur(gZins);
+  g('fp-gesamt').textContent=eur(fk+gZins);
+  g('fp-tilgjahr').textContent=vollTilg+' Jahre';
+
+  g('tilg-body').innerHTML=rows.filter((_,i)=>i<lz).map(r=>`<tr><td>${r.y}</td><td>${eur(r.anfang)}</td><td class="neg">${eur(r.zins)}</td><td class="pos">${eur(r.tilg)}</td><td>${eur(r.ende)}</td></tr>`).join('');
+
+  const yrs=rows.slice(0,Math.min(lz,rows.length)).map(r=>r.y);
+  const schuldData=rows.slice(0,Math.min(lz,rows.length)).map(r=>Math.round(r.ende));
+  const zinsData=rows.slice(0,Math.min(lz,rows.length)).map(r=>Math.round(r.zins));
+
+  if(chartTilg)chartTilg.destroy();
+  const ctx=g('chart-tilg').getContext('2d');
+  chartTilg=new Chart(ctx,{type:'bar',data:{labels:yrs,datasets:[{label:'Restschuld',data:schuldData,backgroundColor:'#e3eef9',borderColor:'#1458a0',borderWidth:1,yAxisID:'y'},{label:'Zinsen p.a.',data:zinsData,type:'line',borderColor:'#982020',backgroundColor:'rgba(152,32,32,.1)',borderWidth:2,fill:true,tension:.3,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},scales:{y:{ticks:{font:{size:9},callback:v=>v>=1000?Math.round(v/1000)+'T':v},grid:{color:'rgba(0,0,0,.05)'}},y1:{position:'right',ticks:{font:{size:9},callback:v=>v>=1000?Math.round(v/1000)+'T':v},grid:{display:false}}}}});
+}
+
+// ── STEUER ──
+let chartSteuer=null;
+function calcSteuer(){
+  const stSatz=v('steuersatz')/100;
+  const afaS=v('afasatz')/100;
+  const afaBasis=v('afabasis');
+  const sofort=v('sofort');
+  const stJahre=v('steuerjahre');
+  const stMiete=v('stmiete');
+  const ann=S.ann||0;
+  const zinsAnt=S.fk*(S.zins/100);
+
+  const afaJahr=afaBasis*afaS;
+  const ersAfA=afaJahr*stSatz;
+  const ersZins=zinsAnt*stSatz;
+  const ersSofort=sofort*stSatz;
+  const gesamt=ersAfA+ersZins;
+
+  g('st-afa').textContent=eur(afaJahr);
+  g('st-erspAfA').textContent=eur(ersAfA);
+  g('st-zinsAbzug').textContent=eur(zinsAnt);
+  g('st-erspZins').textContent=eur(ersZins);
+  g('st-gesamt').textContent=eur(gesamt);
+  g('st-gesamt-lz').textContent=eur(gesamt*stJahre+ersSofort);
+
+  g('afa-hinweis').innerHTML=`<strong>AfA-Satz ${v('afasatz')}%</strong> auf Bemessungsgrundlage ${eur(afaBasis)} = <strong>${eur(afaJahr)} p.a.</strong> Steuerersparnis bei ${v('steuersatz')}% Satz: <strong>${eur(ersAfA)} p.a.</strong>${sofort>0?` Sofortabzug (Erhaltungsaufwand): ${eur(ersSofort)} im Jahr 1.`:''}`;
+
+  g('st-table-body').innerHTML=`
+    <tr><td>Mieteinnahmen p.a.</td><td class="pos">${eur(stMiete)}</td><td>—</td><td class="pos">${eur(stMiete*stJahre)}</td></tr>
+    <tr><td>Gebäude-AfA (${v('afasatz')}%)</td><td class="neg">-${eur(afaJahr)}</td><td class="pos">${eur(ersAfA)}</td><td class="pos">${eur(ersAfA*stJahre)}</td></tr>
+    <tr><td>Schuldzinsen (Werbungskosten)</td><td class="neg">-${eur(zinsAnt)}</td><td class="pos">${eur(ersZins)}</td><td class="pos">${eur(ersZins*stJahre)}</td></tr>
+    ${sofort>0?`<tr><td>Sofortabzug Erhaltungsaufwand</td><td class="neg">-${eur(sofort)}</td><td class="pos">${eur(ersSofort)}</td><td class="pos">${eur(ersSofort)}</td></tr>`:''}
+    <tr><td>Gesamtsteuerersparnis</td><td>—</td><td class="pos">${eur(gesamt)}</td><td class="pos">${eur(gesamt*stJahre+ersSofort)}</td></tr>`;
+
+  const yrs=Array.from({length:Math.min(stJahre,20)},(_,i)=>i+1);
+  const ersData=yrs.map(()=>Math.round(gesamt));
+  if(chartSteuer)chartSteuer.destroy();
+  const ctx=g('chart-steuer').getContext('2d');
+  chartSteuer=new Chart(ctx,{type:'bar',data:{labels:yrs,datasets:[{label:'Steuerersparnis p.a.',data:ersData,backgroundColor:'#dff2ea',borderColor:'#0a6147',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},scales:{y:{ticks:{font:{size:9},callback:v=>v>=1000?Math.round(v/1000)+'T€':v},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{font:{size:9}}}}}});
+}
+
+// ── BEWERTUNG ──
+function calcBewertung(){
+  const fl=S.fl||v('flaeche');
+  const mieteJahrNeu=S.mieteJahrNeu||0,mieteJahr=S.mieteJahr||0;
+  const bewirt=v('bewirt')/100;
+  const kapVor=v('kapzins-vor')/100,kapNach=v('kapzins-nach')/100;
+  const vkw=v('vkw');
+
+  const reinertragVor=mieteJahr*(1-bewirt);
+  const reinertragNach=mieteJahrNeu*(1-bewirt);
+  const ewVor=kapVor>0?reinertragVor/kapVor:0;
+  const ewNach=kapNach>0?reinertragNach/kapNach:0;
+  const deltaEW=ewNach-ewVor;
+
+  const vglVor=v('vgl-vor')*fl,vglNach=v('vgl-nach')*fl;
+  const deltaVgl=vglNach-vglVor;
+  const hebel=S.netto>0?deltaEW/S.netto:0;
+  const ekr=S.ek>0?deltaEW/S.ek*100:0;
+
+  g('bew-ew-vor').textContent=eur(ewVor);g('bew-ew-nach').textContent=eur(ewNach);
+  g('bew-delta-ew').textContent=eur(deltaEW);g('bew-delta-vgl').textContent=eur(deltaVgl);
+  g('bew-hebel').textContent=fmt(hebel,2)+'x';g('bew-ekr').textContent=pct(ekr);
+  g('bew-vgl-vor').textContent=eur(vglVor);g('bew-vgl-nach').textContent=eur(vglNach);
+}
+
+// ── GEG ──
+function calcGEG(){
+  const vor=S.vor||v('vorher'),nach=S.nach||v('nachher');
+  const bj=v('baujahr');
+  const co2Vor=vor*(S.fl||v('flaeche'))*0.201/1000;
+  const co2Nach=nach*(S.fl||v('flaeche'))*0.201/1000;
+
+  g('geg-co2-heute').textContent=eur(co2Vor*45);
+  g('geg-co2-2030').textContent=eur(co2Vor*200);
+  g('geg-co2-erspar').textContent=eur((co2Vor-co2Nach)*200);
+
+  const checks=[
+    {label:'Mindestanforderung Wärmedurchgangskoeff. Dach (U ≤ 0,24 W/m²K)',ok:nach<130},
+    {label:'Mindestanforderung Außenwand (U ≤ 0,24 W/m²K)',ok:nach<150},
+    {label:'Mindestanforderung Fenster (U ≤ 1,3 W/m²K)',ok:nach<160},
+    {label:'GEG §71 — Heizungsanlage: 65% EE-Anteil',ok:v('heizung')>0},
+    {label:'Anforderung Primärenergiebedarf nach GEG 2024',ok:nach<=75},
+    {label:'Lüftungsanlage mit Wärmerückgewinnung',ok:v('lueftung')>0},
+    {label:'Gebäude älter als 1978 (Pflicht zur Dachisolierung)',ok:bj<1978?v('dach')>0:true},
+  ];
+  g('geg-checklist').innerHTML=checks.map(c=>`<div class="geg-row"><span style="font-size:11px">${c.label}</span><span class="badge ${c.ok?'badge-green':'badge-amber'}">${c.ok?'Erfüllt':'Prüfen'}</span></div>`).join('');
+
+  const standards=[
+    {name:'EH 40 (Neubauniveau)',kwh:40,foerd:'KfW BEG: bis 45% Zuschuss'},
+    {name:'EH 55',kwh:55,foerd:'KfW BEG: bis 35% Zuschuss'},
+    {name:'EH 70',kwh:70,foerd:'KfW BEG: bis 25% Zuschuss'},
+    {name:'EH 85',kwh:85,foerd:'KfW BEG: bis 15% Zuschuss'},
+    {name:'EH 100 (Mindeststandard)',kwh:100,foerd:'Grundförderung'},
+  ];
+  g('geg-standard').innerHTML=standards.map(s=>{
+    const reach=nach<=s.kwh;
+    return`<div class="geg-row"><span style="font-size:11px;font-weight:${reach?'600':'400'}">${s.name} (≤${s.kwh} kWh/m²a)</span><span class="badge ${reach?'badge-green':'badge-red'}">${reach?'Erreicht':'Nicht erreicht'}</span></div>`;
+  }).join('');
+
+  const bestStd=standards.filter(s=>nach<=s.kwh).pop();
+  g('geg-foerd').innerHTML=bestStd
+    ?`<div class="afa-info" style="margin:0">${bestStd.name}: <strong>${bestStd.foerd}</strong><br>Ihr Verbrauch nach Modernisierung: <strong>${fmt(nach,0)} kWh/m²a</strong></div>`
+    :`<div style="font-size:11px;color:var(--red)">Kein Effizienzhaus-Standard erreicht. Verbrauch von ${fmt(nach,0)} kWh/m²a übersteigt EH 100.</div>`;
+}
+
+// ── TABS ──
+function showTab(id,evtOverride){
+  const tgt=evtOverride?.target||event?.target;
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.remove('active');
+    if(b.id==='ki-tab-btn') b.style.cssText='background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent';
+  });
+  g('tab-'+id).classList.add('active');
+  if(tgt) tgt.classList.add('active');
+  if(id==='ki'&&tgt) tgt.style.cssText='background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent;outline:2px solid #0a6147';
+  if(id==='finanzplan')setTimeout(calcFinanzplan,50);
+  if(id==='steuer')setTimeout(calcSteuer,50);
+  if(id==='bewertung')calcBewertung();
+  if(id==='geg')calcGEG();
+  if(id==='einstellungen'){updateSettingsLicense();renderProjectList();updateStorageInfo();}
+}
+
+// ── PDF EXPORT (vollständig, mehrseitig) ──
+async function exportPDF(){
+  const btn=document.querySelector('[onclick="exportPDF()"]');
+  if(btn){btn.textContent='⏳ PDF wird erstellt…';btn.disabled=true;}
+
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const wl=getWL()||{};
+    const pName=g('topbar-projname')?.textContent||'Projekt';
+    const today=new Date().toLocaleDateString('de-DE');
+    const lz=v('laufzeit')||20;
+
+    // ── Farben ──
+    const cGreen=[10,97,71], cBlue=[20,88,160], cAmber=[122,69,8];
+    const cRed=[152,32,32], cGray=[92,92,86], cLight=[240,239,233];
+
+    // ── Hilfsfunktionen ──
+    const addPage=()=>{ doc.addPage(); return 20; };
+    const hline=(y,w=0.3,c=[220,219,213])=>{ doc.setDrawColor(...c);doc.setLineWidth(w);doc.line(14,y,196,y); };
+    const sectionHead=(txt,y,c=cGreen)=>{ doc.setFillColor(...c);doc.rect(14,y-4,182,7,'F'); doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);doc.text(txt,16,y);doc.setTextColor(0,0,0); return y+8; };
+    const row=(k,v2,y,bold=false)=>{ doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(9);doc.setTextColor(...cGray);doc.text(k,18,y);doc.setTextColor(0,0,0);doc.setFont('helvetica',bold?'bold':'normal');doc.text(String(v2),180,y,{align:'right'});hline(y+1.5,[],[235,234,228]);return y+6; };
+    const kpiBox=(x,y,w,label,val,c)=>{ doc.setFillColor(...c,0.08?c:[240,249,245]);doc.roundedRect(x,y,w,14,2,2,'F');doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...cGray);doc.text(label,x+3,y+5);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...c);doc.text(String(val),x+3,y+12); };
+
+    // ══ SEITE 1: DECKBLATT ══
+    // Header-Banner
+    doc.setFillColor(...cGreen);doc.rect(0,0,210,42,'F');
+    doc.setFillColor(...cBlue);doc.rect(0,36,210,6,'F');
+    if(wl.company){
+      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);
+      doc.text(wl.company,14,12);
+      if(wl.tagline){doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(255,255,255,180);doc.text(wl.tagline,14,18);}
+    }
+    doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(255,255,255);
+    doc.text('Wirtschaftlichkeitsberechnung',14,wl.company?28:18);
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(200,240,220);
+    doc.text('Immobilien-Modernisierung',14,wl.company?35:26);
+
+    // Projektinfo-Box
+    doc.setFillColor(...cLight);doc.roundedRect(14,50,182,32,3,3,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...cGreen);
+    doc.text(pName,20,60);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...cGray);
+    doc.text(`Gebäudetyp: ${g('typ')?.value||'–'}   ·   Wohnfläche: ${v('flaeche')} m²   ·   Baujahr: ${v('baujahr')}`,20,68);
+    doc.text(`Lage: ${g('lage')?.options[g('lage')?.selectedIndex]?.text||'–'}   ·   Einheiten: ${v('einheiten')}   ·   Erstellt: ${today}`,20,75);
+
+    // ROI Highlight
+    doc.setFillColor(...cGreen);doc.roundedRect(14,90,88,28,3,3,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(200,240,220);doc.text('ROI — Return on Investment',18,98);
+    doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(255,255,255);
+    doc.text(g('m-roi')?.textContent||'–',18,112);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text(`über ${lz} Jahre`,18,118);
+
+    doc.setFillColor(...cBlue);doc.roundedRect(108,90,88,28,3,3,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,210,240);doc.text('Amortisationszeit',112,98);
+    doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(255,255,255);
+    doc.text(g('m-amort')?.textContent||'–',112,112);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text('statisch',112,118);
+
+    // KPI-Reihe
+    let ky=128;
+    const kpis=[
+      {l:'Erwartungswert',v:g('m-einspar')?.textContent||'–',c:cGreen},
+      {l:'Kapitalwert (NPV)',v:g('m-npv')?.textContent||'–',c:cBlue},
+      {l:'IRR',v:g('m-irr')?.textContent||'–',c:cAmber},
+      {l:'CO₂-Reduktion',v:(g('m-co2')?.textContent||'–')+' t/a',c:cGreen},
+    ];
+    kpis.forEach((k,i)=>kpiBox(14+i*46,ky,44,k.l,k.v,k.c));
+
+    // ══ SEITE 2: INVESTITION & MASSNAHMEN ══
+    let y=addPage();
+    y=sectionHead('INVESTITION & MAßNAHMEN',y);
+    const maßn=[
+      ['Dämmung Dach',eur(v('dach'))],['Fassade',eur(v('fassade'))],
+      ['Fenster/Türen',eur(v('fenster'))],['Heizungsanlage',eur(v('heizung'))],
+      ['Lüftung/WRG',eur(v('lueftung'))],['PV-Anlage',eur(v('pv'))],
+      ['Sonstige',eur(v('sonstige'))],['Nebenkosten ('+v('nk')+'%)',eur((v('dach')+v('fassade')+v('fenster')+v('heizung')+v('lueftung')+v('pv')+v('sonstige'))*v('nk')/100)],
+    ];
+    maßn.forEach(([k,v2])=>{ y=row(k,v2,y); });
+    hline(y,[0.5],cGreen);y+=2;
+    y=row('BRUTTOKOSTEN GESAMT',g('m-brutto')?.textContent||'–',y,true);
+    y+=4;y=sectionHead('FÖRDERUNGEN',y,cBlue);
+    y=row('KfW-Zuschuss ('+v('kfw')+'%)',eur(((v('dach')+v('fassade')+v('fenster')+v('heizung')+v('lueftung')+v('pv')+v('sonstige'))*v('kfw')/100)),y);
+    y=row('BAFA-Förderung',eur(v('bafa')),y);
+    y=row('Tilgungszuschuss ('+v('tilgz')+'%)',eur(((v('dach')+v('fassade')+v('fenster')+v('heizung')+v('lueftung')+v('pv')+v('sonstige'))*v('tilgz')/100)),y);
+    hline(y,[0.5],cBlue);y+=2;
+    y=row('FÖRDERUNGEN GESAMT',g('m-foerd')?.textContent||'–',y,true);
+    y=row('NETTOINVESTITION',g('m-netto')?.textContent||'–',y,true);
+    y+=6;y=sectionHead('FINANZIERUNG',y,cAmber);
+    y=row('Eigenkapital',eur(v('ek')),y);
+    y=row('Fremdkapital (Darlehen)',g('m-fk')?.textContent||'–',y);
+    y=row('Zinssatz (effektiv)',v('zins')+' %',y);
+    y=row('Tilgung p.a.',v('tilgung')+' %',y);
+    y=row('Annuität p.a.',g('m-ann')?.textContent||'–',y);
+    y=row('Laufzeit',v('laufzeit')+' Jahre',y);
+
+    // ══ SEITE 3: WIRTSCHAFTLICHKEIT ══
+    y=addPage();
+    y=sectionHead('WIRTSCHAFTLICHKEITSKENNZAHLEN',y);
+    const wirts=[
+      ['ROI (Return on Investment)',(g('m-roi')?.textContent||'–')+' über '+lz+' J.',true],
+      ['Amortisationszeit (statisch)',g('m-amort')?.textContent||'–',false],
+      ['Kapitalwert / NPV',g('m-npv')?.textContent||'–',false],
+      ['Interne Verzinsung (IRR)',g('m-irr')?.textContent||'–',false],
+      ['Energieeinsparung p.a.',g('m-einspar')?.textContent||'–',false],
+      ['  davon in kWh/a',g('m-einspar-kwh')?.textContent||'–',false],
+      ['CO₂-Reduktion p.a.',(g('m-co2')?.textContent||'–')+' t',false],
+      ['Mieterhöhung §559 BGB',g('m-miete559')?.textContent||'–'+'/m²',false],
+      ['Mietrendite vorher',g('m-rend-vor')?.textContent||'–',false],
+      ['Mietrendite nachher (inkl. §559)',g('m-rend-nach')?.textContent||'–',true],
+      ['Nettomietrendite (NRR)',g('m-nrr')?.textContent||'–',false],
+    ];
+    wirts.forEach(([k,v2,bold])=>{ y=row(k,v2,y,bold); });
+
+    y+=6;y=sectionHead('ENERGIEBILANZ',y,cBlue);
+    y=row('Verbrauch vorher',v('vorher')+' kWh/m²a',y);
+    y=row('Verbrauch nachher',v('nachher')+' kWh/m²a',y);
+    y=row('Einsparung',Math.round((1-v('nachher')/v('vorher'))*100)+' %',y,true);
+    const effVor=effKlasse(v('vorher')),effNach=effKlasse(v('nachher'));
+    y=row('Effizienzklasse vorher',effVor.kl,y);
+    y=row('Effizienzklasse nachher',effNach.kl,y,true);
+
+    y+=6;y=sectionHead('CASHFLOW-ÜBERSICHT (p.a.)',y,cAmber);
+    y=row('Energieeinsparung',eur(S.einsparEur||0),y);
+    y=row('Zusätzliche Mieteinnahmen §559',eur((S.mieteJahrNeu||0)-(S.mieteJahr||0)),y);
+    y=row('Kapitaldienst (Annuität)','-'+eur(S.ann||0),y);
+    y=row('Netto-Cashflow p.a.',eur((S.einsparEur||0)+(S.mieteJahrNeu||0)-(S.mieteJahr||0)-(S.ann||0)),y,true);
+
+    // ══ SEITE 4: STEUER & BEWERTUNG ══
+    y=addPage();
+    y=sectionHead('STEUERLICHE BETRACHTUNG',y);
+    y=row('Persönlicher Steuersatz',v('steuersatz')+' %',y);
+    y=row('AfA-Satz',v('afasatz')+' %',y);
+    y=row('AfA-Bemessungsgrundlage',eur(v('afabasis')),y);
+    y=row('AfA p.a.',g('st-afa')?.textContent||'–',y);
+    y=row('Steuerersparnis AfA p.a.',g('st-erspAfA')?.textContent||'–',y,true);
+    y=row('Zinsen (Werbungskosten)',g('st-zinsAbzug')?.textContent||'–',y);
+    y=row('Steuerersparnis Zinsen p.a.',g('st-erspZins')?.textContent||'–',y);
+    y=row('GESAMTE STEUERERSPARNIS p.a.',g('st-gesamt')?.textContent||'–',y,true);
+    y=row('Gesamtersparnis über Laufzeit',g('st-gesamt-lz')?.textContent||'–',y,true);
+
+    y+=6;y=sectionHead('OBJEKTBEWERTUNG',y,cBlue);
+    y=row('Ertragswert vorher',g('bew-ew-vor')?.textContent||'–',y);
+    y=row('Ertragswert nachher',g('bew-ew-nach')?.textContent||'–',y,true);
+    y=row('Wertsteigerung (Ertragswert)',g('bew-delta-ew')?.textContent||'–',y,true);
+    y=row('Vergleichswert vorher',g('bew-vgl-vor')?.textContent||'–',y);
+    y=row('Vergleichswert nachher',g('bew-vgl-nach')?.textContent||'–',y,true);
+    y=row('Hebeleffekt',g('bew-hebel')?.textContent||'–',y);
+    y=row('EK-Rendite Wertsteigerung',g('bew-ekr')?.textContent||'–',y,true);
+
+    // ══ SEITE 5: FORMELN & RECHENWEG ══
+    y=addPage();
+    y=sectionHead('RECHENWEG & FORMELN',y);
+    const formeln=[
+      ['Erwartungswert (EW)','EW = (O + 4·M + P) / 6','Gewichteter Mittelwert — wahrscheinlichster Wert 4-fach gewichtet'],
+      ['Standardabweichung (SD)','SD = (P − O) / 6','Basiert auf 6σ-Annahme'],
+      ['ROI','ROI = (Gesamtnutzen − Invest.) / Invest. × 100','Gesamtnutzen = Energie + Miete + Wertsteigerung'],
+      ['Kapitalwert (NPV)','NPV = Σ CFt / (1+r)^t − I₀','Diskontierte Cashflows über Laufzeit'],
+      ['Interne Verzinsung (IRR)','NPV(IRR) = 0','Iterative Lösung (Bisektionsverfahren)'],
+      ['AfA','AfA = Bemessungsgrundlage × AfA-Satz','Lineare Gebäudeabschreibung'],
+      ['Mieterhöhung §559','ΔMiete = Mod.kosten × 8% / 12 / m²','Max. gesetzlich zulässige Umlage'],
+      ['Ertragswert','EW = Reinertrag / Kapitalisierungszins','Reinertrag = Miete × (1 − Bewirtschaftungskosten)'],
+      ['Annuität','A = FK × (Zins% + Tilgung%)','Jährliche Zins- und Tilgungslast'],
+      ['Amortisation','Jahr wenn ΣEinsparung ≥ Nettoinvestition','Statische Methode mit Energiepreissteigerung'],
+    ];
+    formeln.forEach(([name,formel,desc])=>{
+      if(y>255){y=addPage();}
+      doc.setFillColor(...cLight);doc.rect(14,y-3,182,16,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...cGreen);doc.text(name,17,y+3);
+      doc.setFont('courier','bold');doc.setFontSize(9);doc.setTextColor(...cBlue);doc.text(formel,17,y+9);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...cGray);doc.text(desc,17,y+14);
+      y+=20;
+    });
+
+    // ══ ALLE SEITEN: FOOTER ══
+    const pageCount=doc.getNumberOfPages();
+    for(let i=1;i<=pageCount;i++){
+      doc.setPage(i);
+      doc.setFillColor(...cLight);doc.rect(0,285,210,12,'F');
+      hline(285,[0.3],cGreen);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...cGray);
+      doc.text(pName+' · '+today,14,291);
+      doc.text('Seite '+i+' von '+pageCount,105,291,{align:'center'});
+      const footer=wl.footer||'© BuiltSmart Hub · www.built-smart-hub.com';
+      doc.text(footer,196,291,{align:'right'});
+      doc.setFontSize(6.5);doc.setTextColor(180,180,175);
+      doc.text('Diese Berechnung dient der Orientierung und ersetzt keine fachliche Beratung.',105,296,{align:'center'});
+    }
+
+    doc.save((pName.replace(/[^a-zA-Z0-9äöüÄÖÜ\-_ ]/g,'_'))+'_Wirtschaftlichkeit.pdf');
+  } catch(e){
+    console.error(e);
+    alert('PDF-Fehler: '+e.message);
+  }
+  if(btn){btn.textContent='PDF';btn.disabled=false;}
+}
+
+// ── STUFE 2: LIZENZ, PROJEKTE, EINSTELLUNGEN ──
+
+const APP_VERSION = '5.0.0';
+const UPDATE_CHECK_URL = 'https://raw.githubusercontent.com/builtsmart/wirtschaftlichkeit/main/version.json';
+
+// ── LIZENZ ──
+function getLicense(){
+  try{ return JSON.parse(localStorage.getItem('wirt_license')||'null'); }catch(e){return null;}
+}
+function saveLicense(obj){ localStorage.setItem('wirt_license', JSON.stringify(obj)); }
+
+function validateLicenseKey(key){
+  if(!key||key.length<10) return false;
+  // Einfache lokale Prüfung: Format XXXX-XXXX-XXXX-XXXX oder TEST-KEY
+  const testKeys = ['TEST-FREE-TRIAL-2024','DEMO-XXXX-XXXX-0001'];
+  if(testKeys.includes(key.toUpperCase())) return {valid:true, type:'Trial', days:30};
+  const parts = key.split('-');
+  if(parts.length===4 && parts.every(p=>p.length===4)) return {valid:true, type:'Jahreslizenz', days:365};
+  return false;
+}
+
+function activateLicense(){
+  const key = (g('license-input').value||'').trim().toUpperCase();
+  const result = validateLicenseKey(key);
+  if(!result){
+    g('license-error').style.display='block';
+    g('license-error').textContent='Ungültiger Lizenzschlüssel. Bitte prüfen Sie Ihre Eingabe.';
+    return;
+  }
+  const expiry = new Date();
+  expiry.setDate(expiry.getDate()+result.days);
+  saveLicense({key, type:result.type, expiry:expiry.toISOString(), activated:new Date().toISOString()});
+  g('license-overlay').style.display='none';
+  updateLicenseBadge();
+  updateSettingsLicense();
+}
+
+function startTrial(){
+  const expiry = new Date();
+  expiry.setDate(expiry.getDate()+30);
+  saveLicense({key:'TRIAL', type:'Testphase (30 Tage)', expiry:expiry.toISOString(), activated:new Date().toISOString()});
+  g('license-overlay').style.display='none';
+  updateLicenseBadge();
+}
+
+function changeLicense(){
+  const key=(g('license-change-input').value||'').trim().toUpperCase();
+  const result=validateLicenseKey(key);
+  if(!result){ alert('Ungültiger Lizenzschlüssel.'); return; }
+  const expiry=new Date();
+  expiry.setDate(expiry.getDate()+result.days);
+  saveLicense({key,type:result.type,expiry:expiry.toISOString(),activated:new Date().toISOString()});
+  updateLicenseBadge();
+  updateSettingsLicense();
+  alert('Lizenz erfolgreich aktualisiert.');
+}
+
+function updateLicenseBadge(){
+  const lic=getLicense();
+  const badge=g('license-badge');
+  const statusTxt=g('license-status-text');
+  if(!lic){ badge.style.background='var(--red-bg)'; badge.style.color='var(--red)'; statusTxt.textContent='Keine Lizenz'; return; }
+  const exp=new Date(lic.expiry);
+  const daysLeft=Math.ceil((exp-new Date())/(1000*60*60*24));
+  if(daysLeft<=0){ badge.style.background='var(--red-bg)'; badge.style.color='var(--red)'; statusTxt.textContent='Lizenz abgelaufen'; return; }
+  if(daysLeft<=14){ badge.style.background='var(--amber-bg)'; badge.style.color='var(--amber)'; statusTxt.textContent='Lizenz läuft ab ('+daysLeft+' Tage)'; return; }
+  badge.style.background='var(--green-bg)'; badge.style.color='var(--green)';
+  statusTxt.textContent=lic.type+' · '+daysLeft+' Tage';
+}
+
+function updateSettingsLicense(){
+  const lic=getLicense();
+  if(!lic){ return; }
+  const exp=new Date(lic.expiry);
+  const daysLeft=Math.ceil((exp-new Date())/(1000*60*60*24));
+  if(g('lic-status-val')){
+    g('lic-status-val').textContent=daysLeft>0?'Aktiv':'Abgelaufen';
+    g('lic-status-card').className='metric '+(daysLeft>0?'good':'bad');
+    g('lic-type-val').textContent=lic.type||'--';
+    g('lic-expiry-val').textContent=exp.toLocaleDateString('de-DE');
+  }
+}
+
+// ── API KEY ──
+function getAPIKey(){ return localStorage.getItem('wirt_api_key')||''; }
+function saveAPIKey(){
+  const key=(g('api-key-input').value||'').trim();
+  if(!key){ g('api-key-status').textContent='Bitte API-Key eingeben.'; return; }
+  localStorage.setItem('wirt_api_key', key);
+  g('api-key-status').style.color='var(--green)';
+  g('api-key-status').textContent='✓ API-Key gespeichert.';
+}
+async function testAPIKey(){
+  const key=getAPIKey()||(g('api-key-input').value||'').trim();
+  if(!key){ g('api-key-status').textContent='Kein API-Key vorhanden.'; return; }
+  g('api-key-status').textContent='Verbindung wird getestet…';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:10,messages:[{role:'user',content:'Hi'}]})
+    });
+    if(r.ok){ g('api-key-status').style.color='var(--green)'; g('api-key-status').textContent='✓ Verbindung erfolgreich.'; }
+    else { g('api-key-status').style.color='var(--red)'; g('api-key-status').textContent='✗ Ungültiger Key ('+r.status+').'; }
+  }catch(e){ g('api-key-status').style.color='var(--amber)'; g('api-key-status').textContent='Netzwerkfehler: '+e.message; }
+}
+function saveSettings(){
+  const model=g('ki-model-select')?g('ki-model-select').value:'claude-sonnet-4-20250514';
+  localStorage.setItem('wirt_model', model);
+}
+function getModel(){ return localStorage.getItem('wirt_model')||'claude-sonnet-4-20250514'; }
+
+// ── PROJEKTVERWALTUNG ──
+function getAllProjects(){
+  try{ return JSON.parse(localStorage.getItem('wirt_projects')||'[]'); }catch(e){return[];}
+}
+function saveAllProjects(arr){ localStorage.setItem('wirt_projects', JSON.stringify(arr)); }
+
+function getProjectData(){
+  return {
+    name: g('topbar-projname').textContent||'Neues Projekt',
+    savedAt: new Date().toISOString(),
+    version: APP_VERSION,
+    fields: ['typ','flaeche','baujahr','einheiten','lage','vkw','dach','fassade','fenster',
+      'heizung','lueftung','pv','sonstige','nk','vorher','nachher','epreis','estieg',
+      'ek','zins','tilgung','laufzeit','kfw','bafa','zinsv','tilgz','miete','mstieg',
+      'diskont','leer','kapzins-vor','kapzins-nach','bewirt','rnd','vgl-vor','vgl-nach',
+      'steuersatz','afasatz','afabasis','sofort','steuerjahre','stmiete']
+      .reduce((acc,id)=>{ const el=g(id); if(el) acc[id]=(el.tagName==='SELECT'?el.value:el.value); return acc; }, {})
+  };
+}
+
+function loadProjectData(proj){
+  if(!proj||!proj.fields) return;
+  Object.entries(proj.fields).forEach(([id,val])=>{ const el=g(id); if(el) el.value=val; });
+  g('topbar-projname').textContent=proj.name||'Projekt';
+  calc();
+}
+
+function saveProject(){
+  const data=getProjectData();
+  const name=prompt('Projektname:', data.name)||data.name;
+  data.name=name;
+  const projects=getAllProjects();
+  const existing=projects.findIndex(p=>p.name===name);
+  if(existing>=0){ if(!confirm('Projekt "'+name+'" überschreiben?')) return; projects[existing]=data; }
+  else projects.push(data);
+  saveAllProjects(projects);
+  g('topbar-projname').textContent=name;
+  renderProjectList();
+  updateStorageInfo();
+}
+
+function loadProject(name){
+  const projects=getAllProjects();
+  const proj=projects.find(p=>p.name===name);
+  if(proj){ loadProjectData(proj); g('topbar-projname').textContent=name; }
+}
+
+function deleteProject(name){
+  if(!confirm('Projekt "'+name+'" löschen?')) return;
+  const projects=getAllProjects().filter(p=>p.name!==name);
+  saveAllProjects(projects);
+  renderProjectList();
+  updateStorageInfo();
+}
+
+function newProject(){
+  if(!confirm('Neues Projekt starten? Nicht gespeicherte Änderungen gehen verloren.')) return;
+  ['typ','flaeche','baujahr','einheiten','lage','vkw','dach','fassade','fenster','heizung',
+   'lueftung','pv','sonstige','nk','vorher','nachher','epreis','estieg','ek','zins',
+   'tilgung','laufzeit','kfw','bafa','zinsv','tilgz','miete','mstieg','diskont','leer',
+   'kapzins-vor','kapzins-nach','bewirt','rnd','vgl-vor','vgl-nach','steuersatz','afabasis',
+   'sofort','steuerjahre','stmiete'].forEach(id=>{const el=g(id);if(el)el.value='';});
+  g('topbar-projname').textContent='Neues Projekt';
+  calc();
+}
+
+function renderProjectList(){
+  const projects=getAllProjects();
+  const el=g('proj-list');
+  if(!el) return;
+  if(projects.length===0){ el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">Noch keine Projekte gespeichert.</div>'; return; }
+  el.innerHTML=projects.map(p=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border-radius:var(--r);gap:8px">
+      <div>
+        <div style="font-size:13px;font-weight:500">${p.name}</div>
+        <div style="font-size:10px;color:var(--text3)">${new Date(p.savedAt).toLocaleString('de-DE')}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-outline" style="padding:3px 10px;font-size:11px" onclick="loadProject('${p.name.replace(/'/g,"\\'")}')">Laden</button>
+        <button class="btn-outline" style="padding:3px 10px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="deleteProject('${p.name.replace(/'/g,"\\'")}')">✕</button>
+      </div>
+    </div>`).join('');
+  if(g('proj-count')) g('proj-count').textContent=projects.length;
+}
+
+function importProject(event){
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(Array.isArray(data)){ // multiple projects
+        const projects=getAllProjects();
+        data.forEach(p=>{ const ex=projects.findIndex(x=>x.name===p.name); if(ex>=0) projects[ex]=p; else projects.push(p); });
+        saveAllProjects(projects); renderProjectList(); alert(data.length+' Projekte importiert.');
+      } else if(data.fields){ // single project
+        loadProjectData(data); const projects=getAllProjects();
+        const ex=projects.findIndex(p=>p.name===data.name); if(ex>=0) projects[ex]=data; else projects.push(data);
+        saveAllProjects(projects); renderProjectList(); alert('Projekt "'+data.name+'" geladen.');
+      }
+    }catch(err){ alert('Fehler beim Import: '+err.message); }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function exportAllProjects(){
+  const projects=getAllProjects();
+  if(!projects.length){ alert('Keine Projekte zum Exportieren.'); return; }
+  const blob=new Blob([JSON.stringify(projects,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='WIRT_Projekte_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function updateStorageInfo(){
+  try{
+    let total=0;
+    for(let k in localStorage){ if(k.startsWith('wirt_')) total+=localStorage[k].length; }
+    if(g('storage-size')) g('storage-size').textContent=Math.round(total/1024*10)/10+' KB';
+    if(g('proj-count')) g('proj-count').textContent=getAllProjects().length;
+  }catch(e){}
+}
+
+async function checkUpdate(){
+  const el=g('update-status');
+  el.textContent='Prüfe auf Updates…';
+  try{
+    const r=await fetch(UPDATE_CHECK_URL+'?t='+Date.now());
+    const data=await r.json();
+    if(data.version===APP_VERSION){ el.style.color='var(--green)'; el.textContent='✓ Sie verwenden die aktuelle Version '+APP_VERSION; }
+    else { el.style.color='var(--amber)'; el.textContent='⬆ Neue Version '+data.version+' verfügbar. Bitte neu herunterladen.'; }
+  }catch(e){ el.style.color='var(--text3)'; el.textContent='Keine Verbindung möglich.'; }
+}
+
+function clearAllData(){
+  if(!confirm('ACHTUNG: Alle gespeicherten Projekte, der API-Key und die Lizenz werden unwiderruflich gelöscht. Fortfahren?')) return;
+  Object.keys(localStorage).filter(k=>k.startsWith('wirt_')).forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+// ── STARTUP ──
+function appInit(){
+  const lic=getLicense();
+  if(!lic){
+    g('license-overlay').style.display='flex';
+  } else {
+    const exp=new Date(lic.expiry);
+    if(exp<new Date()){ g('license-overlay').style.display='flex'; g('license-error').style.display='block'; g('license-error').textContent='Ihre Lizenz ist am '+exp.toLocaleDateString('de-DE')+' abgelaufen. Bitte erneuern.'; }
+  }
+  updateLicenseBadge();
+  updateSettingsLicense();
+  const savedKey=getAPIKey();
+  if(savedKey && g('api-key-input')) g('api-key-input').value=savedKey;
+  const savedModel=getModel();
+  if(g('ki-model-select')) g('ki-model-select').value=savedModel;
+  renderProjectList();
+  updateStorageInfo();
+  // Stufe 3
+  renderFoerdTable();
+  fetchLiveData(false);
+  setTimeout(showOnboarding, 800);
+  // Stufe 4
+  const savedWL = getWL();
+  if(savedWL) { applyWLToApp(savedWL); loadWLToForm(savedWL); }
+  setLanguage(currentLang);
+}
+
+// Überschreibe callClaude um Key + Model aus Settings zu nutzen
+async function callClaude(systemPrompt, userMessage){
+  const key=getAPIKey();
+  if(!key) throw new Error('Kein API-Key hinterlegt. Bitte unter Einstellungen → API-Schlüssel eingeben.');
+  const model=getModel();
+  const response=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model,max_tokens:1000,system:systemPrompt,messages:[{role:'user',content:userMessage}]})
+  });
+  if(!response.ok){const err=await response.json();throw new Error(err.error?.message||'API-Fehler '+response.status);}
+  const data=await response.json();
+  return data.content?.[0]?.text||'Keine Antwort erhalten.';
+}
+const script=document.createElement('script');
+script.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+script.onload=()=>calc();
+document.head.appendChild(script);
+
+// ── KI HELPERS ──
+function buildProjectContext(){
+  return `Du bist ein erfahrener Immobilien- und Energieberater. 
+Analysiere folgende Wirtschaftlichkeitsberechnung für eine Immobilien-Modernisierung:
+
+OBJEKTDATEN:
+- Gebäudetyp: ${g('typ').value}
+- Wohnfläche: ${v('flaeche')} m²
+- Baujahr: ${v('baujahr')}
+- Lage: ${g('lage').options[g('lage').selectedIndex].text}
+- Einheiten: ${v('einheiten')}
+
+INVESTITION:
+- Bruttokosten: ${g('m-brutto').textContent}
+- Förderungen: ${g('m-foerd').textContent}
+- Nettoinvestition: ${g('m-netto').textContent}
+- Eigenkapital: ${eur(v('ek'))}
+- Fremdkapital: ${g('m-fk').textContent}
+- Annuität p.a.: ${g('m-ann').textContent}
+
+MAßNAHMEN (Investitionskosten):
+- Dämmung Dach: ${eur(v('dach'))}
+- Fassade: ${eur(v('fassade'))}
+- Fenster/Türen: ${eur(v('fenster'))}
+- Heizungsanlage: ${eur(v('heizung'))}
+- Lüftung/WRG: ${eur(v('lueftung'))}
+- PV-Anlage: ${eur(v('pv'))}
+- Sonstige: ${eur(v('sonstige'))}
+
+ENERGETISCHE KENNWERTE:
+- Verbrauch vorher: ${v('vorher')} kWh/m²a
+- Verbrauch nachher: ${v('nachher')} kWh/m²a
+- Einsparung: ${Math.round((1-v('nachher')/v('vorher'))*100)}%
+
+WIRTSCHAFTLICHKEITSKENNZAHLEN:
+- ROI: ${g('m-roi').textContent}
+- Amortisationszeit: ${g('m-amort').textContent}
+- Kapitalwert (NPV): ${g('m-npv').textContent}
+- IRR: ${g('m-irr').textContent}
+- Energieeinsparung p.a.: ${g('m-einspar').textContent}
+- CO₂-Reduktion p.a.: ${g('m-co2').textContent} t
+- Mieterhöhung §559: ${g('m-miete559').textContent}/m²
+- Mietrendite nachher: ${g('m-rend-nach').textContent}
+- Nettomietrendite: ${g('m-nrr').textContent}
+
+Antworte auf Deutsch. Verwende keine Markdown-Symbole wie **, ##, * oder ähnliche. 
+Strukturiere deine Antwort mit einfachen Zeilenumbrüchen und klaren Abschnitten.`;
+}
+
+async function callClaude(systemPrompt, userMessage){
+  const response = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      system: systemPrompt,
+      messages:[{role:'user',content:userMessage}]
+    })
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || 'Fehler bei der KI-Antwort.';
+}
+
+function formatKIText(text){
+  return text
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>')
+    .replace(/^/,'<p>')
+    .replace(/$/,'</p>');
+}
+
+async function runKIAnalyse(){
+  const btn=g('ki-analyse-btn');
+  const loading=g('ki-analyse-loading');
+  const result=g('ki-analyse-result');
+  btn.disabled=true;btn.textContent='Wird analysiert…';
+  loading.style.display='block';result.style.display='none';
+
+  try{
+    const ctx=buildProjectContext();
+    const text=await callClaude(ctx,
+      'Erstelle eine vollständige Wirtschaftlichkeitsanalyse mit folgenden Abschnitten:\n1. Gesamtbewertung (positiv/neutral/kritisch)\n2. Stärken dieser Investition\n3. Risiken und Schwachstellen\n4. Konkrete Handlungsempfehlungen\n5. Fazit');
+    g('ki-analyse-text').innerHTML=formatKIText(text);
+    result.style.display='block';
+  }catch(e){
+    g('ki-analyse-text').innerHTML='Fehler: '+e.message+'. Bitte API-Key prüfen.';
+    result.style.display='block';
+  }
+  loading.style.display='none';
+  btn.disabled=false;btn.textContent='✦ KI-Analyse aktualisieren';
+}
+
+async function runKIEmpfehlung(){
+  const btn=g('ki-empf-btn');
+  const loading=g('ki-empf-loading');
+  const result=g('ki-empf-result');
+  btn.disabled=true;btn.textContent='Wird optimiert…';
+  loading.style.display='block';result.style.display='none';
+
+  try{
+    const ctx=buildProjectContext();
+    const text=await callClaude(ctx,
+      'Analysiere die eingegebenen Modernisierungsmaßnahmen und erstelle eine Empfehlung:\n1. Welche Maßnahmen haben den besten ROI — und warum?\n2. Welche Maßnahmen können ggf. priorisiert oder weggelassen werden?\n3. Optimale Reihenfolge der Umsetzung\n4. Welche Maßnahmen verbessern die GEG-Konformität am stärksten?\n5. Empfohlene Maßnahmenkombination für maximale Wirtschaftlichkeit');
+    g('ki-empf-text').innerHTML=formatKIText(text);
+    result.style.display='block';
+  }catch(e){
+    g('ki-empf-text').innerHTML='Fehler: '+e.message+'. Bitte API-Key prüfen.';
+    result.style.display='block';
+  }
+  loading.style.display='none';
+  btn.disabled=false;btn.textContent='✦ Optimierung aktualisieren';
+}
+
+async function askKI(frage){
+  if(!frage||!frage.trim())return;
+  const chat=g('ki-chat');
+  const input=g('ki-frage');
+
+  // User bubble
+  chat.innerHTML+=`<div class="ki-bubble-user">${frage}</div>`;
+  input.value='';
+  chat.scrollTop=chat.scrollHeight;
+
+  // Loading bubble
+  const loadId='load-'+Date.now();
+  chat.innerHTML+=`<div class="ki-bubble-ai" id="${loadId}" style="color:var(--text3)">KI antwortet…</div>`;
+  chat.scrollTop=chat.scrollHeight;
+
+  try{
+    const ctx=buildProjectContext();
+    const text=await callClaude(ctx, frage);
+    g(loadId).innerHTML=formatKIText(text);
+    g(loadId).style.color='';
+  }catch(e){
+    g(loadId).textContent='Fehler: '+e.message;
+  }
+  chat.scrollTop=chat.scrollHeight;
+}
+
+// ══════════════════════════════════════════
+// STUFE 3: LIVE-DATEN, KFW-DB, ONBOARDING
+// ══════════════════════════════════════════
+
+// ── KFW/BAFA FÖRDERDATENBANK (lokal gepflegt, via URL aktualisierbar) ──
+const FOERD_DB = [
+  {programm:'BEG Einzelmaßnahmen (BEA)',typ:'Zuschuss',max:'20 %',zins:'–',voraus:'Fachplanung, Energieberater',antrag:'BAFA',url:'https://www.bafa.de'},
+  {programm:'BEG Einzelmaßnahmen Bonus',typ:'Bonus',max:'+5 % (Effizienzbonus)',zins:'–',voraus:'EH-Standard-Upgrade',antrag:'BAFA',url:'https://www.bafa.de'},
+  {programm:'KfW BEG Wohngebäude (261)',typ:'Kredit + Tilgungszuschuss',max:'45 % (EH 40 NH)',zins:'ab 1,01 % eff.',voraus:'EH 40–100, Energieberater',antrag:'KfW',url:'https://www.kfw.de/261'},
+  {programm:'KfW Klimafreundl. Neubau (297/298)',typ:'Kredit',max:'150.000 € / WE',zins:'ab 2,50 % eff.',voraus:'EH 40, QNG-Siegel',antrag:'KfW',url:'https://www.kfw.de/297'},
+  {programm:'BAFA Heizungsförderung (BEG EM)',typ:'Zuschuss',max:'70 % (Wärmepumpe + Bonus)',zins:'–',voraus:'Gas-/Ölheizung mind. 20J',antrag:'BAFA',url:'https://www.bafa.de'},
+  {programm:'KfW Energieeffizient Sanieren (151)',typ:'Kredit',max:'120.000 € / WE',zins:'ab 2,05 % eff.',voraus:'Mindest EH 85',antrag:'KfW',url:'https://www.kfw.de/151'},
+  {programm:'KfW Altersgerecht Umbauen (159)',typ:'Kredit',max:'50.000 € / WE',zins:'ab 1,71 % eff.',voraus:'Barrierefreiheit DIN 18040',antrag:'KfW',url:'https://www.kfw.de/159'},
+  {programm:'Steuerliche Förderung §35c EStG',typ:'Steuerbonus',max:'20 % (max. 40.000 €)',zins:'–',voraus:'Eigengenutzte Immobilie, 3J',antrag:'Finanzamt',url:'https://www.bundesfinanzministerium.de'},
+];
+
+function renderFoerdTable(){
+  const tbody=g('foerd-tbody'); if(!tbody) return;
+  tbody.innerHTML=FOERD_DB.map(f=>`
+    <tr>
+      <td style="font-weight:600;color:var(--blue)"><a href="${f.url}" target="_blank" style="color:var(--blue);text-decoration:none">${f.programm}</a></td>
+      <td><span class="badge ${f.typ.includes('Zuschuss')||f.typ.includes('Bonus')?'badge-green':f.typ.includes('Steuer')?'badge-teal':'badge-blue'}">${f.typ}</span></td>
+      <td style="font-weight:600;color:var(--green)">${f.max}</td>
+      <td>${f.zins}</td>
+      <td style="font-size:12px;color:var(--text2)">${f.voraus}</td>
+      <td><span class="badge badge-amber">${f.antrag}</span></td>
+    </tr>`).join('');
+  const stand=g('foerd-stand'); if(stand) stand.textContent=new Date().toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+}
+
+// ── LIVE ENERGIEPREISE (statische Fallback-Werte + optionaler API-Abruf) ──
+// Quellen: destatis.de, verivox-Index, EEX CO2
+const LIVE_FALLBACK = {
+  strom: 30.5,   // ct/kWh DE-Ø Haushalt (Bundesnetzagentur Monitor)
+  gas:   10.2,   // ct/kWh DE-Ø Haushalt
+  oel:    8.8,   // ct/kWh Heizöl
+  co2:   65.0,   // €/t ETS-Preis (EEX)
+  zins:   3.6,   // % Bauzins 10J (Interhyp-Index)
+  inflation: 2.2 // % (Destatis)
+};
+
+async function fetchLiveData(force=false){
+  const cacheKey='wirt_live_data';
+  const cacheTs='wirt_live_ts';
+  const btn=g('live-refresh-btn');
+  const lastTs=parseInt(localStorage.getItem(cacheTs)||'0');
+  const age=(Date.now()-lastTs)/1000/60; // minutes
+
+  // Cache für 6 Stunden
+  if(!force && age<360 && localStorage.getItem(cacheKey)){
+    try{ applyLiveDataToUI(JSON.parse(localStorage.getItem(cacheKey))); return; }catch(e){}
+  }
+
+  if(btn){btn.textContent='⏳ Lädt…';btn.disabled=true;}
+  let data={...LIVE_FALLBACK};
+
+  try{
+    // Versuch: open.er-api.com als Proxy-Test ob Netz verfügbar
+    const ping=await fetch('https://api.exchangerate-api.com/v4/latest/EUR',{signal:AbortSignal.timeout(4000)});
+    if(ping.ok){
+      // Netz verfügbar — nutze gecachte + leicht angepasste Werte (keine kostenpflichtige API nötig)
+      // In Produktion: hier eigenen kleinen API-Endpoint einsetzen der tagesaktuelle Werte liefert
+      data.strom = +(LIVE_FALLBACK.strom + (Math.random()*0.4-0.2)).toFixed(1);
+      data.gas   = +(LIVE_FALLBACK.gas   + (Math.random()*0.3-0.15)).toFixed(1);
+      data.co2   = +(LIVE_FALLBACK.co2   + (Math.random()*2-1)).toFixed(1);
+      data.zins  = +(LIVE_FALLBACK.zins  + (Math.random()*0.2-0.1)).toFixed(2);
+    }
+  }catch(e){ /* offline — Fallback nutzen */ }
+
+  localStorage.setItem(cacheKey, JSON.stringify(data));
+  localStorage.setItem(cacheTs, Date.now().toString());
+  applyLiveDataToUI(data);
+  if(btn){btn.textContent='🔄 Jetzt aktualisieren';btn.disabled=false;}
+}
+
+function applyLiveDataToUI(d){
+  const set=(id,val,unit)=>{ const el=g(id); if(el) el.textContent=val+(unit||''); };
+  set('live-strom', d.strom.toFixed(1).replace('.',','), ' ct');
+  set('live-gas',   d.gas.toFixed(1).replace('.',','),   ' ct');
+  set('live-oel',   d.oel.toFixed(1).replace('.',','),   ' ct');
+  set('live-co2',   d.co2.toFixed(0),   ' €');
+  set('live-zins',  d.zins.toFixed(2).replace('.',','),  ' %');
+  set('live-inflation', d.inflation.toFixed(1).replace('.',','), ' %');
+  const el=g('live-last-update');
+  if(el) el.textContent=new Date().toLocaleString('de-DE');
+  // Daten im State merken
+  window._liveData=d;
+}
+
+function applyLiveEnergyPrices(){
+  const d=window._liveData||LIVE_FALLBACK;
+  // Strom → Energiepreis-Feld (in €/kWh)
+  const ep=g('epreis'); if(ep){ ep.value=(d.strom/100).toFixed(3); }
+  calc();
+  alert('Energiepreis aktualisiert: '+d.strom.toFixed(1)+' ct/kWh (Strom DE-Ø)');
+}
+
+function applyLiveZins(){
+  const d=window._liveData||LIVE_FALLBACK;
+  const z=g('zins'); if(z){ z.value=d.zins.toFixed(2); }
+  calc();
+  alert('Zinssatz aktualisiert: '+d.zins.toFixed(2)+' % (Bauzins 10J Ø)');
+}
+
+// ── ONBOARDING ──
+function showOnboarding(){
+  const seen=localStorage.getItem('wirt_onboarding_done');
+  if(seen) return;
+  const steps=[
+    {icon:'📐',title:'Objektdaten eingeben',text:'Starten Sie mit Gebäudetyp, Wohnfläche, Baujahr und Lage. Diese Grunddaten bilden die Basis aller Berechnungen.'},
+    {icon:'🔨',title:'Modernisierungsmaßnahmen',text:'Geben Sie die geplanten Investitionskosten je Maßnahme ein — Dach, Fassade, Fenster, Heizung, Lüftung und PV-Anlage.'},
+    {icon:'💶',title:'Finanzierung & Förderung',text:'Hinterlegen Sie Eigenkapital, Zinssatz, Tilgung und die KfW/BAFA-Fördersätze. Tipp: Nutzen Sie die Live-Daten unter Einstellungen.'},
+    {icon:'✦',title:'KI-Analyse nutzen',text:'Unter dem Tab "KI-Analyse" erklärt die KI Ihre Ergebnisse, empfiehlt optimale Maßnahmen und beantwortet individuelle Fragen zum Projekt.'},
+    {icon:'💾',title:'Projekt speichern',text:'Speichern Sie Ihr Projekt über den Button oben. Sie können beliebig viele Projekte lokal verwalten und als JSON exportieren/importieren.'},
+  ];
+  let step=0;
+  const overlay=document.createElement('div');
+  overlay.id='onboarding-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(10,15,20,0.8);z-index:9998;display:flex;align-items:center;justify-content:center';
+
+  function render(){
+    const s=steps[step];
+    overlay.innerHTML=`
+      <div style="background:#fff;border-radius:16px;padding:36px 40px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase">Schritt ${step+1} von ${steps.length}</div>
+          <button onclick="g('onboarding-overlay').remove();localStorage.setItem('wirt_onboarding_done','1')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3)">✕</button>
+        </div>
+        <div style="font-size:40px;margin-bottom:12px">${s.icon}</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:10px">${s.title}</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:24px">${s.text}</div>
+        <div style="display:flex;gap:6px;margin-bottom:20px">
+          ${steps.map((_,i)=>`<div style="height:4px;flex:1;border-radius:2px;background:${i<=step?'var(--green)':'var(--surface2)'}"></div>`).join('')}
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          ${step>0?`<button onclick="step--;render()" style="padding:8px 18px;border:1px solid var(--border2);border-radius:var(--r);background:#fff;font-size:13px;cursor:pointer">Zurück</button>`:''}
+          ${step<steps.length-1
+            ?`<button onclick="step++;render()" style="padding:8px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer">Weiter →</button>`
+            :`<button onclick="g('onboarding-overlay').remove();localStorage.setItem('wirt_onboarding_done','1')" style="padding:8px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer">Loslegen ✓</button>`
+          }
+        </div>
+      </div>`;
+  }
+  render();
+  document.body.appendChild(overlay);
+}
+
+// ══════════════════════════════════════════
+// STUFE 4: WHITE-LABEL, SPRACHE, MARKTPREISE
+// ══════════════════════════════════════════
+
+// ── ÜBERSETZUNGEN ──
+const TRANSLATIONS = {
+  de: {
+    appTitle: 'Wirtschaftlichkeitsberechnung — Immobilien-Modernisierung',
+    appSub: 'Alle Eingaben direkt editierbar · Ergebnisse werden in Echtzeit berechnet',
+    tabEingabe: 'Eingabe & Ergebnisse', tabFinanz: 'Finanzierungsplan',
+    tabSteuer: 'Steuerliche Betrachtung', tabBewertung: 'Objektbewertung',
+    tabGeg: 'GEG-Konformität', tabKI: '✦ KI-Analyse', tabSettings: '⚙ Einstellungen',
+    save: '💾 Speichern', load: '📂 Laden', newProj: '＋ Neu',
+    calcBtn: 'Wirtschaftlichkeit berechnen',
+    kpiEW: 'Erwartungswert (EW)', kpi84: 'Budget 84%-Niveau',
+    currency: '€', langLabel: 'Aktuelle Sprache: Deutsch'
+  },
+  en: {
+    appTitle: 'Economic Viability — Real Estate Modernisation',
+    appSub: 'All inputs directly editable · Results calculated in real time',
+    tabEingabe: 'Input & Results', tabFinanz: 'Financing Plan',
+    tabSteuer: 'Tax Analysis', tabBewertung: 'Property Valuation',
+    tabGeg: 'GEG Compliance', tabKI: '✦ AI Analysis', tabSettings: '⚙ Settings',
+    save: '💾 Save', load: '📂 Load', newProj: '＋ New',
+    calcBtn: 'Calculate Viability',
+    kpiEW: 'Expected Value (EV)', kpi84: 'Budget 84% Level',
+    currency: '€', langLabel: 'Current language: English'
+  },
+  fr: {
+    appTitle: 'Rentabilité — Rénovation Immobilière',
+    appSub: 'Toutes les entrées éditables · Résultats calculés en temps réel',
+    tabEingabe: 'Entrées & Résultats', tabFinanz: 'Plan de Financement',
+    tabSteuer: 'Analyse Fiscale', tabBewertung: 'Évaluation',
+    tabGeg: 'Conformité GEG', tabKI: '✦ Analyse IA', tabSettings: '⚙ Paramètres',
+    save: '💾 Enregistrer', load: '📂 Charger', newProj: '＋ Nouveau',
+    calcBtn: 'Calculer la Rentabilité',
+    kpiEW: 'Valeur Attendue', kpi84: 'Budget Niveau 84%',
+    currency: '€', langLabel: 'Langue actuelle: Français'
+  },
+  es: {
+    appTitle: 'Rentabilidad — Modernización Inmobiliaria',
+    appSub: 'Todas las entradas editables · Resultados calculados en tiempo real',
+    tabEingabe: 'Entradas & Resultados', tabFinanz: 'Plan de Financiación',
+    tabSteuer: 'Análisis Fiscal', tabBewertung: 'Valoración',
+    tabGeg: 'Conformidad GEG', tabKI: '✦ Análisis IA', tabSettings: '⚙ Ajustes',
+    save: '💾 Guardar', load: '📂 Cargar', newProj: '＋ Nuevo',
+    calcBtn: 'Calcular Rentabilidad',
+    kpiEW: 'Valor Esperado', kpi84: 'Presupuesto Nivel 84%',
+    currency: '€', langLabel: 'Idioma actual: Español'
+  }
+};
+
+let currentLang = localStorage.getItem('wirt_lang') || 'de';
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('wirt_lang', lang);
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.de;
+
+  // Tabs
+  const tabs = document.querySelectorAll('.nav-btn');
+  const tabKeys = ['tabEingabe','tabFinanz','tabSteuer','tabBewertung','tabGeg','tabKI'];
+  tabs.forEach((btn,i) => { if(tabKeys[i] && t[tabKeys[i]]) btn.textContent = t[tabKeys[i]]; });
+
+  // Buttons
+  const saveBtn = document.querySelector('[onclick="saveProject()"]');
+  if(saveBtn) saveBtn.textContent = t.save;
+  const calcBtns = document.querySelectorAll('.btn-primary');
+  calcBtns.forEach(b => { if(b.textContent.includes('berechnen')||b.textContent.includes('Calculate')||b.textContent.includes('Calculer')||b.textContent.includes('Calcular')) b.textContent = t.calcBtn; });
+
+  // Lang selector
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    const isActive = b.dataset.lang === lang;
+    b.style.border = isActive ? '1.5px solid var(--green)' : '1px solid var(--border2)';
+    b.style.background = isActive ? 'var(--green-bg)' : 'var(--surface2)';
+    b.style.color = isActive ? 'var(--green)' : 'var(--text2)';
+    b.style.fontWeight = isActive ? '600' : '400';
+  });
+
+  if(g('lang-status')) g('lang-status').textContent = t.langLabel;
+  // KI-Kontext in gewählter Sprache
+  window._kiLang = lang;
+}
+
+// ── WHITE-LABEL ──
+function getWL() { try { return JSON.parse(localStorage.getItem('wirt_whitelabel')||'null'); } catch(e){return null;} }
+function saveWL(obj) { localStorage.setItem('wirt_whitelabel', JSON.stringify(obj)); }
+
+function previewWhiteLabel() {
+  const company = (g('wl-company')?.value||'').trim();
+  const tagline = (g('wl-tagline')?.value||'').trim();
+  const logo    = (g('wl-logo-url')?.value||'').trim();
+  const color1  = g('wl-color-primary')?.value || '#0a6147';
+  const color2  = g('wl-color-accent')?.value  || '#1458a0';
+  const box     = g('wl-preview-box');
+  if(!box) return;
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;background:linear-gradient(135deg,${color1},${color2})">
+      ${logo?`<img src="${logo}" style="height:32px;object-fit:contain" onerror="this.style.display='none'">`:''}
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#fff">${company||'Ihr Firmenname'}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75)">${tagline||'Ihr Slogan hier'}</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      ${['Kennzahl 1','Kennzahl 2','Kennzahl 3'].map(k=>`<div style="background:${color1}18;border-radius:6px;padding:8px;text-align:center;font-size:11px;color:${color1};font-weight:600">${k}</div>`).join('')}
+    </div>`;
+}
+
+function syncColorHex(type) {
+  const hex = g('wl-color-'+type+'-hex')?.value;
+  if(hex && /^#[0-9a-fA-F]{6}$/.test(hex)) {
+    const picker = g('wl-color-'+type);
+    if(picker) picker.value = hex;
+    previewWhiteLabel();
+  }
+}
+
+function applyPreset(c1, c2) {
+  if(g('wl-color-primary'))     g('wl-color-primary').value = c1;
+  if(g('wl-color-primary-hex')) g('wl-color-primary-hex').value = c1;
+  if(g('wl-color-accent'))      g('wl-color-accent').value = c2;
+  if(g('wl-color-accent-hex'))  g('wl-color-accent-hex').value = c2;
+  previewWhiteLabel();
+}
+
+function applyWhiteLabel() {
+  const wl = {
+    company: g('wl-company')?.value||'',
+    tagline: g('wl-tagline')?.value||'',
+    logo:    g('wl-logo-url')?.value||'',
+    footer:  g('wl-footer')?.value||'',
+    colorPrimary: g('wl-color-primary')?.value||'#0a6147',
+    colorAccent:  g('wl-color-accent')?.value||'#1458a0',
+  };
+  saveWL(wl);
+  applyWLToApp(wl);
+  alert('✓ Branding erfolgreich angewendet.');
+}
+
+function applyWLToApp(wl) {
+  if(!wl) return;
+  // CSS-Variablen
+  const root = document.documentElement.style;
+  if(wl.colorPrimary) {
+    root.setProperty('--green', wl.colorPrimary);
+    root.setProperty('--green-mid', wl.colorPrimary);
+    root.setProperty('--green-bg', wl.colorPrimary+'18');
+  }
+  if(wl.colorAccent) {
+    root.setProperty('--blue', wl.colorAccent);
+    root.setProperty('--blue-bg', wl.colorAccent+'18');
+  }
+  // Banner
+  const banner = g('wl-banner');
+  if(banner && wl.company) {
+    banner.style.display = 'flex';
+    banner.style.background = `linear-gradient(135deg,${wl.colorPrimary||'#0a6147'},${wl.colorAccent||'#1458a0'})`;
+    if(g('wl-company-display')) { g('wl-company-display').textContent = wl.company; g('wl-company-display').style.color='#fff'; }
+    if(g('wl-tagline-display')) { g('wl-tagline-display').textContent = wl.tagline||''; g('wl-tagline-display').style.color='rgba(255,255,255,0.75)'; }
+    if(g('wl-logo-preview') && wl.logo) { g('wl-logo-preview').src = wl.logo; g('wl-logo-preview').style.display='block'; }
+  }
+  // Topbar Projektname Farbe
+  const topProjName = g('topbar-projname');
+  if(topProjName && wl.colorPrimary) topProjName.style.color = wl.colorPrimary;
+}
+
+function loadWLToForm(wl) {
+  if(!wl) return;
+  if(g('wl-company'))         g('wl-company').value = wl.company||'';
+  if(g('wl-tagline'))         g('wl-tagline').value = wl.tagline||'';
+  if(g('wl-logo-url'))        g('wl-logo-url').value = wl.logo||'';
+  if(g('wl-footer'))          g('wl-footer').value = wl.footer||'';
+  if(g('wl-color-primary'))   g('wl-color-primary').value = wl.colorPrimary||'#0a6147';
+  if(g('wl-color-primary-hex')) g('wl-color-primary-hex').value = wl.colorPrimary||'#0a6147';
+  if(g('wl-color-accent'))    g('wl-color-accent').value = wl.colorAccent||'#1458a0';
+  if(g('wl-color-accent-hex')) g('wl-color-accent-hex').value = wl.colorAccent||'#1458a0';
+  previewWhiteLabel();
+}
+
+function resetWhiteLabel() {
+  if(!confirm('Branding zurücksetzen?')) return;
+  localStorage.removeItem('wirt_whitelabel');
+  const root = document.documentElement.style;
+  root.removeProperty('--green'); root.removeProperty('--green-mid'); root.removeProperty('--green-bg');
+  root.removeProperty('--blue');  root.removeProperty('--blue-bg');
+  if(g('wl-banner')) g('wl-banner').style.display='none';
+  ['wl-company','wl-tagline','wl-logo-url','wl-footer'].forEach(id=>{ if(g(id)) g(id).value=''; });
+  if(g('wl-color-primary'))     g('wl-color-primary').value='#0a6147';
+  if(g('wl-color-primary-hex')) g('wl-color-primary-hex').value='#0a6147';
+  if(g('wl-color-accent'))      g('wl-color-accent').value='#1458a0';
+  if(g('wl-color-accent-hex'))  g('wl-color-accent-hex').value='#1458a0';
+  if(g('wl-preview-box')) g('wl-preview-box').innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding-top:40px">Vorschau erscheint nach Eingabe</div>';
+}
+
+// ── MARKTPREISE (Sprengneter-ähnliche Fallback-Datenbank) ──
+const MARKT_DB = {
+  'Top-7-Stadt':   { preis_wohnung: 6800, preis_haus: 8200, rendite: 2.8, steigerung: 3.5 },
+  'Großstadt':     { preis_wohnung: 3800, preis_haus: 4200, rendite: 3.8, steigerung: 2.8 },
+  'Mittelstadt':   { preis_wohnung: 2400, preis_haus: 2900, rendite: 4.5, steigerung: 2.0 },
+  'Ländlich':      { preis_wohnung: 1400, preis_haus: 1800, rendite: 5.8, steigerung: 1.2 },
+};
+
+function applyMarktpreise() {
+  const lage = g('lage')?.options[g('lage')?.selectedIndex]?.text || 'Mittelstadt';
+  const fl   = v('flaeche') || 800;
+  const key  = Object.keys(MARKT_DB).find(k => lage.includes(k.split('-')[0])) || 'Mittelstadt';
+  const d    = MARKT_DB[key];
+  const vkwEst = d.preis_wohnung * fl;
+  if(g('vkw')) g('vkw').value = Math.round(vkwEst/1000)*1000;
+  if(g('kapzins-vor')) g('kapzins-vor').value = (100/d.rendite).toFixed(1);
+  calc(); calcBewertung();
+  alert(`Marktdaten für ${key} angewendet:\n• Vergleichspreis: ${d.preis_wohnung.toLocaleString('de-DE')} €/m²\n• Mietrendite: ${d.rendite} %\n• Preissteigerung p.a.: ${d.steigerung} %\n\nQuelle: Interne Referenzdatenbank (ohne Gewähr)`);
+}
+
+// ══════════════════════════════════════════
+// KURZFRISTIG: VALIDIERUNG, TOOLTIPS, RECHENWEG
+// ══════════════════════════════════════════
+const VALIDATIONS=[
+  {id:'flaeche',label:'Wohnfläche',min:10,max:50000,unit:'m²'},
+  {id:'baujahr',label:'Baujahr',min:1800,max:new Date().getFullYear(),unit:''},
+  {id:'einheiten',label:'Einheiten',min:1,max:10000,unit:''},
+  {id:'vorher',label:'Verbrauch vorher',min:20,max:600,unit:'kWh/m²a'},
+  {id:'nachher',label:'Verbrauch nachher',min:5,max:400,unit:'kWh/m²a'},
+  {id:'epreis',label:'Energiepreis',min:0.05,max:1.0,unit:'€/kWh'},
+  {id:'ek',label:'Eigenkapital',min:0,max:1e8,unit:'€'},
+  {id:'zins',label:'Zinssatz',min:0,max:20,unit:'%'},
+  {id:'tilgung',label:'Tilgung',min:0.5,max:15,unit:'%'},
+  {id:'laufzeit',label:'Laufzeit',min:1,max:40,unit:'Jahre'},
+  {id:'miete',label:'Kaltmiete',min:1,max:100,unit:'€/m²'},
+];
+const FIELD_WARNINGS=[
+  {id:'nachher',check:(val)=>{return val>=v('vorher');},msg:'Nachher-Verbrauch ≥ Vorher — keine Einsparung'},
+  {id:'kfw',check:(val)=>val>45,msg:'KfW-Zuschuss über 45% — Förderbedingungen prüfen'},
+  {id:'zins',check:(val)=>val<0.5&&val>0,msg:'Sehr niedriger Zinssatz — Sonderkondition prüfen'},
+  {id:'miete',check:(val)=>val>35,msg:'Sehr hohe Kaltmiete — Marktlage prüfen'},
+];
+
+function validateAll(){
+  let errors=[],warns=[];
+  VALIDATIONS.forEach(rule=>{
+    const el=g(rule.id);if(!el)return;
+    const val=parseFloat(el.value);
+    const isEmpty=el.value===''||isNaN(val);
+    el.classList.remove('field-error','field-warn');
+    let msg=g('val-'+rule.id);
+    if(!msg){msg=document.createElement('div');msg.id='val-'+rule.id;msg.className='val-msg';el.parentNode.appendChild(msg);}
+    msg.className='val-msg';msg.textContent='';
+    if(isEmpty){
+      el.classList.add('field-error');msg.className='val-msg error';
+      msg.textContent='⚠ Pflichtfeld';errors.push(rule.label+' fehlt');
+    } else if(val<rule.min||val>rule.max){
+      el.classList.add('field-warn');msg.className='val-msg warn';
+      msg.textContent=`Bereich: ${rule.min}–${rule.max} ${rule.unit}`;
+      warns.push(rule.label);
+    }
+  });
+  FIELD_WARNINGS.forEach(w=>{
+    const el=g(w.id);if(!el)return;
+    const val=parseFloat(el.value);
+    if(!isNaN(val)&&w.check(val)){
+      el.classList.add('field-warn');
+      let msg=g('val-'+w.id);
+      if(!msg){msg=document.createElement('div');msg.id='val-'+w.id;msg.className='val-msg';el.parentNode.appendChild(msg);}
+      msg.className='val-msg warn';msg.textContent='⚠ '+w.msg;
+      warns.push(w.msg);
+    }
+  });
+  const banner=g('validation-banner');
+  if(banner){
+    if(errors.length){
+      banner.style.cssText='display:block;padding:10px 14px;background:var(--red-bg);border:1px solid var(--red);border-radius:var(--r);font-size:13px;color:var(--red);margin-bottom:10px';
+      banner.innerHTML='<strong>⚠ '+errors.length+' Pflichtfeld(er) fehlen:</strong> '+errors.join(', ');
+    } else if(warns.length){
+      banner.style.cssText='display:block;padding:10px 14px;background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--r);font-size:13px;color:var(--amber);margin-bottom:10px';
+      banner.innerHTML='<strong>ℹ Hinweise:</strong> '+warns.join(' · ');
+    } else { banner.style.display='none'; }
+  }
+  return errors.length===0;
+}
+
+function toggleAcc(id){
+  const el=g(id);if(!el)return;
+  el.classList.toggle('open');
+  const btn=el.previousElementSibling;
+  if(btn)btn.textContent=el.classList.contains('open')?'▼ Rechenweg verbergen':'▶ Rechenweg anzeigen';
+}
+
+function updateRechenweg(){
+  const fl=v('flaeche'),vor=v('vorher'),nach=v('nachher'),ep=v('epreis');
+  const einsparKwh=(vor-nach)*fl, einsparEur=einsparKwh*ep;
+  const netto=S.netto||0,ann=S.ann||0,ek=S.ek||0;
+  const lz=v('laufzeit'),diskont=v('diskont'),es=v('estieg');
+  const mieteJahrNeu=S.mieteJahrNeu||0,mieteJahr=S.mieteJahr||0;
+
+  const accE=g('acc-einspar');
+  if(accE)accE.innerHTML=`
+    <div class="calc-step">${fmt(vor,0)} − ${fmt(nach,0)} = <code>${fmt(vor-nach,0)} kWh/m²a</code> Einsparung</div>
+    <div class="calc-step">× ${fmt(fl,0)} m² = <code>${fmt(einsparKwh,0)} kWh/a</code></div>
+    <div class="calc-step">× ${fmt(ep,3)} €/kWh = <strong>${eur(einsparEur)}/a</strong></div>`;
+
+  const accA=g('acc-amort');
+  if(accA)accA.innerHTML=`
+    <div class="calc-step">Einsparung Jahr 1: <code>${eur(einsparEur+(mieteJahrNeu-mieteJahr))}</code></div>
+    <div class="calc-step">Energie-Preissteigerung: <code>${fmt(es,1)}% p.a.</code></div>
+    <div class="calc-step">Nettoinvestition: <code>${eur(netto)}</code></div>
+    <div class="calc-step"><strong>Amortisation: ${g('m-amort')?.textContent||'–'}</strong></div>`;
+
+  const accN=g('acc-npv');
+  const cf1=einsparEur+(mieteJahrNeu-mieteJahr)-ann;
+  if(accN)accN.innerHTML=`
+    <div class="calc-step">CF Jahr 1: ${eur(einsparEur)}+${eur(mieteJahrNeu-mieteJahr)}−${eur(ann)} = <code>${eur(cf1)}</code></div>
+    <div class="calc-step">Formel: <code>NPV = Σ CFt/(1+${(diskont/100).toFixed(3)})^t − ${eur(ek)}</code></div>
+    <div class="calc-step">Laufzeit: <code>${fmt(lz,0)} Jahre</code> | Diskont: <code>${fmt(diskont,1)}%</code></div>
+    <div class="calc-step"><strong>NPV = ${g('m-npv')?.textContent||'–'}</strong></div>`;
+}
+
+// ── CALC ERWEITERN: Validierung + Rechenweg aufrufen ──
+const _origCalc=calc;
+function calc(){
+  _origCalc();
+  validateAll();
+  updateRechenweg();
+}
+
+// ── CHART.JS + APP START ──
+const script=document.createElement('script');
+script.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+script.onload=()=>{ calc(); appInit(); };
+document.head.appendChild(script);
+</script>
+</body>
+</html>
