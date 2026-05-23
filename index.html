@@ -18,11 +18,11 @@
   --teal:#0e5e6f;--teal-bg:#e0f2f6;
   --r:8px;--rl:12px;--gap:14px;
 }
-body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;color:var(--text);background:transparent;padding:16px;min-width:320px}
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;color:var(--text);background:transparent;padding:12px 16px;min-width:0}
 
 /* NAV TABS */
 .nav{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
-.nav-btn{padding:8px 16px;font-size:14px;font-weight:500;border:1px solid var(--border2);border-radius:20px;background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
+.nav-btn{padding:7px 14px;font-size:13px;font-weight:500;border:1px solid var(--border2);border-radius:20px;background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
 .nav-btn:hover{background:var(--surface2)}
 .nav-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
 
@@ -33,24 +33,29 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:15px;
 /* PANELS */
 .panel{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:var(--gap)}
 .panel-head{padding:11px 16px;border-bottom:0.5px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
-.panel-head .ph-icon{width:14px;height:14px;opacity:.6}
 .panel-body{padding:14px 16px}
 
-/* GRID LAYOUT */
-.grid2{display:grid;grid-template-columns:360px 1fr;gap:var(--gap)}
+/* GRID LAYOUT — vollständig responsiv */
+.grid2{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:var(--gap);align-items:start}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.grid2c{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-@media(max-width:780px){.grid2,.grid2c{grid-template-columns:1fr}}
+.grid2c{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--gap)}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+@media(max-width:600px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-/* FORM */
+/* FORM — responsiv 2-spaltig default, nie enger */
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.field{display:flex;flex-direction:column;gap:4px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field.full{grid-column:1/-1}
-label{font-size:12px;color:var(--text2);font-weight:500}
+label{font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .unit{font-size:11px;color:var(--text3);margin-left:2px;font-weight:400}
-input[type=number],select{height:34px;padding:0 10px;font-size:14px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none}
+input[type=number],select{height:34px;padding:0 8px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none;min-width:0}
 input[type=number]:focus,select:focus{border-color:var(--green)}
 .section-label{font-size:12px;font-weight:600;color:var(--text2);margin:12px 0 8px;padding-bottom:5px;border-bottom:0.5px solid var(--border);letter-spacing:.04em;text-transform:uppercase}
+
+/* 4-col field grids → 2-col on small screens */
+.fields-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
+.fields-4-to-2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
+@media(max-width:700px){.fields-4,.fields-4-to-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* METRICS */
 .metric{background:var(--surface2);border-radius:var(--r);padding:12px 13px}
@@ -170,38 +175,36 @@ canvas{max-width:100%;display:block}
 
 <!-- ═══ TOP BAR ═══ -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:8px">
-  <div style="display:flex;align-items:center;gap:12px">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <div>
       <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green)">SMART CapEx</div>
-      <div style="font-size:14px;font-weight:600;color:var(--text)" id="topbar-projname">Neues Projekt</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="topbar-projname">Neues Projekt</div>
     </div>
-    <div style="height:28px;width:0.5px;background:var(--border)"></div>
     <div id="license-badge" style="display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:var(--green-bg);font-size:11px;font-weight:600;color:var(--green)">
       <span>●</span> <span id="license-status-text">Lizenz aktiv</span>
     </div>
-    <div style="font-size:11px;color:var(--text3)">v<span id="app-version-top">5.0.0</span></div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <button class="btn-outline" onclick="saveProject()" style="font-size:12px;padding:5px 12px">💾 Speichern</button>
-    <button class="btn-outline" onclick="document.getElementById('proj-import-file').click()" style="font-size:12px;padding:5px 12px">📂 Laden</button>
-    <button class="btn-outline" onclick="newProject()" style="font-size:12px;padding:5px 12px">＋ Neu</button>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+    <button class="btn-outline" onclick="saveProject()" style="font-size:12px;padding:5px 10px">💾</button>
+    <button class="btn-outline" onclick="document.getElementById('proj-import-file').click()" style="font-size:12px;padding:5px 10px">📂</button>
+    <button class="btn-outline" onclick="newProject()" style="font-size:12px;padding:5px 10px">＋ Neu</button>
     <input type="file" id="proj-import-file" accept=".json" style="display:none" onchange="importProject(event)">
-    <button class="btn-pdf" onclick="exportPDF()" style="padding:5px 14px;font-size:12px">
+    <button class="btn-pdf" onclick="exportPDF()" style="padding:5px 12px;font-size:12px">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       PDF
     </button>
-    <button onclick="showTab('einstellungen',{target:document.getElementById('settings-nav-btn')})" id="settings-nav-btn" class="nav-btn" style="padding:5px 12px;font-size:12px">⚙ Einstellungen</button>
+    <button onclick="showTab('einstellungen',this)" id="settings-nav-btn" class="nav-btn" style="padding:5px 12px;font-size:12px">⚙ Einstellungen</button>
   </div>
 </div>
 
 <div class="nav">
-  <button class="nav-btn active" onclick="showTab('eingabe')">Eingabe & Ergebnisse</button>
-  <button class="nav-btn" onclick="showTab('finanzplan')">Finanzierungsplan</button>
-  <button class="nav-btn" onclick="showTab('steuer')">Steuerliche Betrachtung</button>
-  <button class="nav-btn" onclick="showTab('bewertung')">Objektbewertung</button>
-  <button class="nav-btn" onclick="showTab('geg')">GEG-Konformität</button>
-  <button class="nav-btn" onclick="showTab('vergleich')" style="border-color:var(--amber);color:var(--amber)">⇄ Variantenvergleich</button>
-  <button class="nav-btn" id="ki-tab-btn" onclick="showTab('ki')" style="background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent">✦ KI-Analyse</button>
+  <button class="nav-btn active" onclick="showTab('eingabe',this)">Eingabe & Ergebnisse</button>
+  <button class="nav-btn" onclick="showTab('finanzplan',this)">Finanzierungsplan</button>
+  <button class="nav-btn" onclick="showTab('steuer',this)">Steuer</button>
+  <button class="nav-btn" onclick="showTab('bewertung',this)">Bewertung</button>
+  <button class="nav-btn" onclick="showTab('geg',this)">GEG</button>
+  <button class="nav-btn" onclick="showTab('vergleich',this)" style="border-color:var(--amber);color:var(--amber)">⇄ Vergleich</button>
+  <button class="nav-btn" id="ki-tab-btn" onclick="showTab('ki',this)" style="background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent">✦ KI-Analyse</button>
 </div>
 
 <!-- ═══════════════════ TAB 1: EINGABE ═══════════════════ -->
@@ -213,8 +216,8 @@ canvas{max-width:100%;display:block}
     <div class="panel">
       <div class="panel-head">Objektdaten</div>
       <div class="panel-body">
-        <div class="field-row">
-          <div class="field full"><label>Gebäudetyp</label>
+        <div class="fields-4">
+          <div class="field" style="grid-column:1/-1"><label>Gebäudetyp</label>
             <select id="typ" onchange="calc()">
               <option>Mehrfamilienhaus</option><option>Einfamilienhaus</option>
               <option>Wohnanlage</option><option>Gewerbe/Mischnutzung</option>
@@ -229,7 +232,7 @@ canvas{max-width:100%;display:block}
               <option value="1.6">Top-7-Stadt</option><option value="0.7">Ländlich</option>
             </select>
           </div>
-          <div class="field"><label>Verkehrswert aktuell <span class="unit">€</span></label><input type="number" id="vkw" value="1200000" onchange="calc()"></div>
+          <div class="field" style="grid-column:span 4"><label>Verkehrswert aktuell <span class="unit">€</span></label><input type="number" id="vkw" value="1200000" onchange="calc()" step="1000" style="max-width:200px"></div>
         </div>
       </div>
     </div>
@@ -238,18 +241,18 @@ canvas{max-width:100%;display:block}
       <div class="panel-head">Modernisierungsmaßnahmen</div>
       <div class="panel-body">
         <div class="section-label">Investitionskosten</div>
-        <div class="field-row">
-          <div class="field"><label>Dämmung Dach <span class="unit">€</span></label><input type="number" id="dach" value="45000" onchange="calc()"></div>
-          <div class="field"><label>Dämmung Fassade <span class="unit">€</span></label><input type="number" id="fassade" value="80000" onchange="calc()"></div>
-          <div class="field"><label>Fenster / Türen <span class="unit">€</span></label><input type="number" id="fenster" value="60000" onchange="calc()"></div>
-          <div class="field"><label>Heizungsanlage <span class="unit">€</span></label><input type="number" id="heizung" value="55000" onchange="calc()"></div>
-          <div class="field"><label>Lüftung / WRG <span class="unit">€</span></label><input type="number" id="lueftung" value="20000" onchange="calc()"></div>
-          <div class="field"><label>PV-Anlage <span class="unit">€</span></label><input type="number" id="pv" value="30000" onchange="calc()"></div>
-          <div class="field"><label>Sonstige <span class="unit">€</span></label><input type="number" id="sonstige" value="10000" onchange="calc()"></div>
+        <div class="fields-4">
+          <div class="field"><label>Dämmung Dach <span class="unit">€</span></label><input type="number" id="dach" value="45000" onchange="calc()" step="1000"></div>
+          <div class="field"><label>Dämmung Fassade <span class="unit">€</span></label><input type="number" id="fassade" value="80000" onchange="calc()" step="1000"></div>
+          <div class="field"><label>Fenster / Türen <span class="unit">€</span></label><input type="number" id="fenster" value="60000" onchange="calc()" step="1000"></div>
+          <div class="field"><label>Heizungsanlage <span class="unit">€</span></label><input type="number" id="heizung" value="55000" onchange="calc()" step="1000"></div>
+          <div class="field"><label>Lüftung / WRG <span class="unit">€</span></label><input type="number" id="lueftung" value="20000" onchange="calc()" step="1000"></div>
+          <div class="field"><label>PV-Anlage <span class="unit">€</span></label><input type="number" id="pv" value="30000" onchange="calc()" step="1000"></div>
+          <div class="field"><label>Sonstige <span class="unit">€</span></label><input type="number" id="sonstige" value="10000" onchange="calc()" step="1000"></div>
           <div class="field"><label>Nebenkosten <span class="unit">%</span></label><input type="number" id="nk" value="12" onchange="calc()"></div>
         </div>
         <div class="section-label">Energetische Kennwerte</div>
-        <div class="field-row">
+        <div class="fields-4">
           <div class="field"><label>Verbrauch vorher <span class="unit">kWh/m²a</span></label><input type="number" id="vorher" value="180" onchange="calc()"></div>
           <div class="field"><label>Verbrauch nachher <span class="unit">kWh/m²a</span></label><input type="number" id="nachher" value="55" onchange="calc()"></div>
           <div class="field"><label>Energiepreis <span class="unit">€/kWh</span></label><input type="number" id="epreis" value="0.12" step="0.01" onchange="calc()"></div>
@@ -261,21 +264,21 @@ canvas{max-width:100%;display:block}
     <div class="panel">
       <div class="panel-head">Finanzierung & Förderung</div>
       <div class="panel-body">
-        <div class="field-row">
-          <div class="field"><label>Eigenkapital <span class="unit">€</span></label><input type="number" id="ek" value="100000" onchange="calc()"></div>
+        <div class="fields-4">
+          <div class="field"><label>Eigenkapital <span class="unit">€</span></label><input type="number" id="ek" value="100000" onchange="calc()" step="1000"></div>
           <div class="field"><label>Zinssatz <span class="unit">%</span></label><input type="number" id="zins" value="3.5" step="0.1" onchange="calc()"></div>
           <div class="field"><label>Tilgung <span class="unit">%/a</span></label><input type="number" id="tilgung" value="2" step="0.5" onchange="calc()"></div>
           <div class="field"><label>Laufzeit <span class="unit">Jahre</span></label><input type="number" id="laufzeit" value="20" onchange="calc()"></div>
         </div>
         <div class="section-label">KfW / BAFA Förderung</div>
-        <div class="field-row">
+        <div class="fields-4">
           <div class="field"><label>KfW-Zuschuss <span class="unit">%</span></label><input type="number" id="kfw" value="20" onchange="calc()"></div>
-          <div class="field"><label>BAFA <span class="unit">€</span></label><input type="number" id="bafa" value="5000" onchange="calc()"></div>
+          <div class="field"><label>BAFA <span class="unit">€</span></label><input type="number" id="bafa" value="5000" onchange="calc()" step="1000"></div>
           <div class="field"><label>Zinsvergünstigung <span class="unit">%</span></label><input type="number" id="zinsv" value="1.0" step="0.1" onchange="calc()"></div>
           <div class="field"><label>Tilgungszuschuss <span class="unit">%</span></label><input type="number" id="tilgz" value="5" onchange="calc()"></div>
         </div>
         <div class="section-label">Mietparameter</div>
-        <div class="field-row">
+        <div class="fields-4">
           <div class="field"><label>Kaltmiete <span class="unit">€/m²</span></label><input type="number" id="miete" value="8.50" step="0.1" onchange="calc()"></div>
           <div class="field"><label>Mietsteigerung <span class="unit">%/a</span></label><input type="number" id="mstieg" value="2" onchange="calc()"></div>
           <div class="field"><label>Diskontierungssatz <span class="unit">%</span></label><input type="number" id="diskont" value="5" step="0.5" onchange="calc()"></div>
@@ -411,10 +414,10 @@ canvas{max-width:100%;display:block}
               <option value="5">5% (Denkmal-AfA)</option>
             </select>
           </div>
-          <div class="field"><label>AfA-Bemessungsgrundlage <span class="unit">€</span></label><input type="number" id="afabasis" value="1200000" onchange="calcSteuer()"></div>
-          <div class="field"><label>Sofortabzugsfähige Kosten <span class="unit">€</span></label><input type="number" id="sofort" value="0" onchange="calcSteuer()"></div>
+          <div class="field"><label>AfA-Bemessungsgrundlage <span class="unit">€</span></label><input type="number" id="afabasis" value="1200000" onchange="calcSteuer()" step="1000"></div>
+          <div class="field"><label>Sofortabzugsfähige Kosten <span class="unit">€</span></label><input type="number" id="sofort" value="0" onchange="calcSteuer()" step="1000"></div>
           <div class="field"><label>Betrachtungszeitraum <span class="unit">Jahre</span></label><input type="number" id="steuerjahre" value="20" onchange="calcSteuer()"></div>
-          <div class="field"><label>Mieteinnahmen p.a. <span class="unit">€</span></label><input type="number" id="stmiete" value="81600" onchange="calcSteuer()"></div>
+          <div class="field"><label>Mieteinnahmen p.a. <span class="unit">€</span></label><input type="number" id="stmiete" value="81600" onchange="calcSteuer()" step="1000"></div>
         </div>
         <div class="afa-info" id="afa-hinweis">AfA-Informationen werden nach Eingabe berechnet.</div>
       </div>
@@ -517,12 +520,12 @@ canvas{max-width:100%;display:block}
         <input type="text" id="vA-name" value="Vollsanierung" onchange="vgl_calc()" style="height:30px;padding:0 8px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none;margin-bottom:8px">
         <div class="section-label">Investitionskosten</div>
         <div class="field-row">
-          <div class="field"><label>Dach <span class="unit">€</span></label><input type="number" id="vA-dach" value="45000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Fassade <span class="unit">€</span></label><input type="number" id="vA-fassade" value="80000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Fenster <span class="unit">€</span></label><input type="number" id="vA-fenster" value="60000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Heizung <span class="unit">€</span></label><input type="number" id="vA-heizung" value="55000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Lüftung <span class="unit">€</span></label><input type="number" id="vA-lueftung" value="20000" onchange="vgl_calc()"></div>
-          <div class="field"><label>PV <span class="unit">€</span></label><input type="number" id="vA-pv" value="30000" onchange="vgl_calc()"></div>
+          <div class="field"><label>Dach <span class="unit">€</span></label><input type="number" id="vA-dach" value="45000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Fassade <span class="unit">€</span></label><input type="number" id="vA-fassade" value="80000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Fenster <span class="unit">€</span></label><input type="number" id="vA-fenster" value="60000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Heizung <span class="unit">€</span></label><input type="number" id="vA-heizung" value="55000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Lüftung <span class="unit">€</span></label><input type="number" id="vA-lueftung" value="20000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>PV <span class="unit">€</span></label><input type="number" id="vA-pv" value="30000" onchange="vgl_calc()" step="1000"></div>
         </div>
         <div class="section-label">Energetisch</div>
         <div class="field-row">
@@ -545,12 +548,12 @@ canvas{max-width:100%;display:block}
         <input type="text" id="vB-name" value="Teilsanierung" onchange="vgl_calc()" style="height:30px;padding:0 8px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none;margin-bottom:8px">
         <div class="section-label">Investitionskosten</div>
         <div class="field-row">
-          <div class="field"><label>Dach <span class="unit">€</span></label><input type="number" id="vB-dach" value="45000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Fassade <span class="unit">€</span></label><input type="number" id="vB-fassade" value="0" onchange="vgl_calc()"></div>
-          <div class="field"><label>Fenster <span class="unit">€</span></label><input type="number" id="vB-fenster" value="60000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Heizung <span class="unit">€</span></label><input type="number" id="vB-heizung" value="55000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Lüftung <span class="unit">€</span></label><input type="number" id="vB-lueftung" value="0" onchange="vgl_calc()"></div>
-          <div class="field"><label>PV <span class="unit">€</span></label><input type="number" id="vB-pv" value="0" onchange="vgl_calc()"></div>
+          <div class="field"><label>Dach <span class="unit">€</span></label><input type="number" id="vB-dach" value="45000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Fassade <span class="unit">€</span></label><input type="number" id="vB-fassade" value="0" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Fenster <span class="unit">€</span></label><input type="number" id="vB-fenster" value="60000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Heizung <span class="unit">€</span></label><input type="number" id="vB-heizung" value="55000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Lüftung <span class="unit">€</span></label><input type="number" id="vB-lueftung" value="0" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>PV <span class="unit">€</span></label><input type="number" id="vB-pv" value="0" onchange="vgl_calc()" step="1000"></div>
         </div>
         <div class="section-label">Energetisch</div>
         <div class="field-row">
@@ -573,12 +576,12 @@ canvas{max-width:100%;display:block}
         <input type="text" id="vC-name" value="Nur Heizung" onchange="vgl_calc()" style="height:30px;padding:0 8px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--surface2);color:var(--text);width:100%;outline:none;margin-bottom:8px">
         <div class="section-label">Investitionskosten</div>
         <div class="field-row">
-          <div class="field"><label>Dach <span class="unit">€</span></label><input type="number" id="vC-dach" value="0" onchange="vgl_calc()"></div>
-          <div class="field"><label>Fassade <span class="unit">€</span></label><input type="number" id="vC-fassade" value="0" onchange="vgl_calc()"></div>
-          <div class="field"><label>Fenster <span class="unit">€</span></label><input type="number" id="vC-fenster" value="0" onchange="vgl_calc()"></div>
-          <div class="field"><label>Heizung <span class="unit">€</span></label><input type="number" id="vC-heizung" value="55000" onchange="vgl_calc()"></div>
-          <div class="field"><label>Lüftung <span class="unit">€</span></label><input type="number" id="vC-lueftung" value="0" onchange="vgl_calc()"></div>
-          <div class="field"><label>PV <span class="unit">€</span></label><input type="number" id="vC-pv" value="0" onchange="vgl_calc()"></div>
+          <div class="field"><label>Dach <span class="unit">€</span></label><input type="number" id="vC-dach" value="0" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Fassade <span class="unit">€</span></label><input type="number" id="vC-fassade" value="0" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Fenster <span class="unit">€</span></label><input type="number" id="vC-fenster" value="0" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Heizung <span class="unit">€</span></label><input type="number" id="vC-heizung" value="55000" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>Lüftung <span class="unit">€</span></label><input type="number" id="vC-lueftung" value="0" onchange="vgl_calc()" step="1000"></div>
+          <div class="field"><label>PV <span class="unit">€</span></label><input type="number" id="vC-pv" value="0" onchange="vgl_calc()" step="1000"></div>
         </div>
         <div class="section-label">Energetisch</div>
         <div class="field-row">
@@ -956,9 +959,7 @@ function g(id){return document.getElementById(id)}
 function v(id){return parseFloat(g(id).value)||0}
 function fmt(n,d=0){return isNaN(n)?'--':n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function eur(n){
-  if(isNaN(n))return'--';
-  const a=Math.abs(n);
-  if(a>=1e6)return n.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' €';
+  if(isNaN(n)||n===null||n===undefined)return'--';
   return n.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0})+' €';
 }
 function pct(n,d=1){return isNaN(n)?'--':fmt(n,d).replace('.',',')+' %'}
@@ -1070,6 +1071,8 @@ function calc(){
   }).join('');
 
   calcFinanzplan();calcSteuer();calcBewertung();calcGEG();
+  validateAll();
+  updateRechenweg();
 }
 
 // ── FINANZIERUNGSPLAN ──
@@ -1217,22 +1220,23 @@ function calcGEG(){
 }
 
 // ── TABS ──
-function showTab(id,evtOverride){
-  const tgt=evtOverride?.target||event?.target;
+function showTab(id, btn){
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>{
     b.classList.remove('active');
     if(b.id==='ki-tab-btn') b.style.cssText='background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent';
   });
-  g('tab-'+id).classList.add('active');
-  if(tgt) tgt.classList.add('active');
-  if(id==='ki'&&tgt) tgt.style.cssText='background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent;outline:2px solid #0a6147';
-  if(id==='finanzplan')setTimeout(calcFinanzplan,50);
-  if(id==='steuer')setTimeout(calcSteuer,50);
-  if(id==='bewertung')calcBewertung();
-  if(id==='geg')calcGEG();
-  if(id==='vergleich')setTimeout(vgl_calc,50);
-  if(id==='einstellungen'){updateSettingsLicense();renderProjectList();updateStorageInfo();}
+  const tab=g('tab-'+id);
+  if(tab) tab.classList.add('active');
+  if(btn){ btn.classList.add('active'); }
+  if(id==='ki'&&btn) btn.style.cssText='background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent;outline:2px solid #0a6147';
+  if(id==='vergleich'&&btn) btn.style.cssText='border-color:var(--amber);color:var(--amber)';
+  if(id==='finanzplan') setTimeout(calcFinanzplan,50);
+  if(id==='steuer') setTimeout(calcSteuer,50);
+  if(id==='bewertung') calcBewertung();
+  if(id==='geg') calcGEG();
+  if(id==='vergleich') setTimeout(vgl_calc,50);
+  if(id==='einstellungen'){ updateSettingsLicense(); renderProjectList(); updateStorageInfo(); }
 }
 
 // ── PDF EXPORT (vollständig, mehrseitig) ──
@@ -1846,21 +1850,6 @@ Antworte auf Deutsch. Verwende keine Markdown-Symbole wie **, ##, * oder ähnlic
 Strukturiere deine Antwort mit einfachen Zeilenumbrüchen und klaren Abschnitten.`;
 }
 
-async function callClaude(systemPrompt, userMessage){
-  const response = await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',
-      max_tokens:1000,
-      system: systemPrompt,
-      messages:[{role:'user',content:userMessage}]
-    })
-  });
-  const data = await response.json();
-  return data.content?.[0]?.text || 'Fehler bei der KI-Antwort.';
-}
-
 function formatKIText(text){
   return text
     .replace(/\n\n/g,'</p><p>')
@@ -2402,14 +2391,6 @@ function updateRechenweg(){
     <div class="calc-step"><strong>NPV = ${g('m-npv')?.textContent||'–'}</strong></div>`;
 }
 
-// ── CALC ERWEITERN: Validierung + Rechenweg aufrufen ──
-const _origCalc=calc;
-function calc(){
-  _origCalc();
-  validateAll();
-  updateRechenweg();
-}
-
 // ══════════════════════════════════════════
 // VARIANTENVERGLEICH
 // ══════════════════════════════════════════
@@ -2457,17 +2438,6 @@ function vgl_getData(p){
   const effVor=effKlasse(vorher),effNach=effKlasse(nachher);
 
   return{name,brutto,foerd,netto,fk,ann,einsparEur,einsparKwh,co2,mietErh,amort,npv,irr,roi,effVor,effNach,vorher,nachher,annSaving,basis};
-}
-
-function effKlasse(kwh){
-  if(kwh<30)return{kl:'A+',col:'#0a6147'};
-  if(kwh<50)return{kl:'A',col:'#1D9E75'};
-  if(kwh<75)return{kl:'B',col:'#3B6D11'};
-  if(kwh<100)return{kl:'C',col:'#639922'};
-  if(kwh<130)return{kl:'D',col:'#BA7517'};
-  if(kwh<160)return{kl:'E',col:'#854F0B'};
-  if(kwh<200)return{kl:'F',col:'#D85A30'};
-  return{kl:'G/H',col:'#982020'};
 }
 
 function vgl_calc(){
