@@ -261,6 +261,7 @@ canvas{max-width:100%;display:block}
   <button class="nav-btn" onclick="showTab('steuer',this)">Steuer</button>
   <button class="nav-btn" onclick="showTab('bewertung',this)">Bewertung</button>
   <button class="nav-btn" onclick="showTab('geg',this)">GEG</button>
+  <button class="nav-btn" onclick="showTab('dcf',this)" style="border-color:var(--blue);color:var(--blue);font-weight:600">◈ DCF</button>
   <button class="nav-btn" onclick="showTab('vergleich',this)" style="border-color:var(--amber);color:var(--amber)">⇄ Vergleich</button>
   <button class="nav-btn" id="ki-tab-btn" onclick="showTab('ki',this)" style="background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent">✦ KI-Analyse</button>
 </div>
@@ -499,84 +500,187 @@ canvas{max-width:100%;display:block}
 
 <!-- ═══════════════════ TAB 2: FINANZIERUNGSPLAN ═══════════════════ -->
 <div id="tab-finanzplan" class="tab-page">
-  <div class="grid2c">
-    <div class="panel">
-      <div class="panel-head">Darlehensübersicht</div>
-      <div class="panel-body">
-        <div class="grid3" style="margin-bottom:12px">
-          <div class="metric info"><div class="metric-label">Darlehensbetrag</div><div class="metric-value" id="fp-darlehen">--</div></div>
-          <div class="metric"><div class="metric-label">Effektivzins</div><div class="metric-value" id="fp-zins">--</div></div>
-          <div class="metric"><div class="metric-label">Annuität p.a.</div><div class="metric-value" id="fp-ann">--</div></div>
-          <div class="metric good"><div class="metric-label">Gesamtzinsen</div><div class="metric-value" id="fp-gesamtzins">--</div></div>
-          <div class="metric warn"><div class="metric-label">Gesamtbelastung</div><div class="metric-value" id="fp-gesamt">--</div></div>
-          <div class="metric"><div class="metric-label">Vollständige Tilgung</div><div class="metric-value" id="fp-tilgjahr">--</div></div>
+
+  <div class="grid2c" style="margin-bottom:14px">
+
+    <!-- LINKE SPALTE: DARLEHENSÜBERSICHT -->
+    <div style="display:flex;flex-direction:column;gap:var(--gap)">
+      <div class="panel">
+        <div class="panel-head" style="background:var(--blue);color:#fff">Darlehensübersicht</div>
+        <div class="panel-body">
+          <div class="grid3" style="margin-bottom:12px">
+            <div class="metric info"><div class="metric-label">Darlehensbetrag</div><div class="metric-value" id="fp-darlehen">--</div><div class="metric-sub">Fremdkapital</div></div>
+            <div class="metric"><div class="metric-label">Effektivzins (nach KfW)</div><div class="metric-value" id="fp-zins">--</div><div class="metric-sub">p.a.</div></div>
+            <div class="metric"><div class="metric-label">Annuität p.a.</div><div class="metric-value" id="fp-ann">--</div><div class="metric-sub" id="fp-ann-mo">-- €/Monat</div></div>
+            <div class="metric warn"><div class="metric-label">Gesamtzinsen</div><div class="metric-value" id="fp-gesamtzins">--</div><div class="metric-sub">über Laufzeit</div></div>
+            <div class="metric"><div class="metric-label">Gesamtbelastung</div><div class="metric-value" id="fp-gesamt">--</div><div class="metric-sub">Darlehen + Zinsen</div></div>
+            <div class="metric good"><div class="metric-label">Vollständige Tilgung</div><div class="metric-value" id="fp-tilgjahr">--</div><div class="metric-sub">bei const. Annuität</div></div>
+          </div>
+
+          <!-- KfW-Vergleich -->
+          <div id="fp-kfw-vergleich" style="display:none;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px">
+            <div style="font-weight:600;color:var(--green);margin-bottom:4px">KfW-Zinsersparnis</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+              <div><div style="color:var(--text3);font-size:11px">Zins ohne KfW</div><div style="font-weight:600" id="fp-zins-ohne">--</div></div>
+              <div><div style="color:var(--text3);font-size:11px">Zins mit KfW</div><div style="font-weight:600;color:var(--green)" id="fp-zins-mit">--</div></div>
+              <div><div style="color:var(--text3);font-size:11px">Zinsersparnis</div><div style="font-weight:600;color:var(--green)" id="fp-zins-ersparnis">--</div></div>
+            </div>
+          </div>
+
+          <div style="position:relative;height:200px"><canvas id="chart-tilg"></canvas></div>
         </div>
-        <div style="position:relative;height:180px"><canvas id="chart-tilg"></canvas></div>
       </div>
     </div>
+
+    <!-- RECHTE SPALTE: TILGUNGSPLAN -->
     <div class="panel">
-      <div class="panel-head">Tilgungsplan (Jahresübersicht)</div>
-      <div class="panel-body" style="padding:0">
-        <table class="tilg-table" id="tilg-table">
-          <thead><tr><th>Jahr</th><th>Schuld Anfang</th><th>Zinsen</th><th>Tilgung</th><th>Schuld Ende</th></tr></thead>
+      <div class="panel-head" style="background:var(--blue);color:#fff">
+        Tilgungsplan — Jahresübersicht
+        <span style="margin-left:auto;font-size:11px;opacity:.7" id="fp-laufzeit-label"></span>
+      </div>
+      <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
+        <table class="data-table">
+          <thead style="position:sticky;top:0;background:var(--surface2);z-index:1">
+            <tr>
+              <th>Jahr</th>
+              <th>Schuld Anfang</th>
+              <th>Zinsen p.a.</th>
+              <th>Tilgung p.a.</th>
+              <th>Schuld Ende</th>
+              <th>Zinsanteil</th>
+              <th>Tilgungsanteil</th>
+            </tr>
+          </thead>
           <tbody id="tilg-body"></tbody>
+          <tfoot id="tilg-foot"></tfoot>
         </table>
       </div>
     </div>
+
   </div>
+
+  <!-- SZENARIEN-VERGLEICH -->
+  <div class="panel">
+    <div class="panel-head">Szenariovergleich — Auswirkung verschiedener Zinssätze</div>
+    <div class="panel-body" style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Zinssatz</th>
+            <th>Annuität p.a.</th>
+            <th>Monatliche Rate</th>
+            <th>Gesamtzinsen</th>
+            <th>Gesamtbelastung</th>
+            <th>Vollständ. Tilgung</th>
+            <th>Mehrkosten vs. Basis</th>
+          </tr>
+        </thead>
+        <tbody id="fp-szenarien-body"></tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════ TAB 3: STEUER ═══════════════════ -->
 <div id="tab-steuer" class="tab-page">
-  <div class="grid2c">
+  <div class="grid2c" style="margin-bottom:14px">
+
     <div class="panel">
       <div class="panel-head">Steuerliche Eingaben</div>
       <div class="panel-body">
-        <div class="field-row">
-          <div class="field"><label>Persönlicher Steuersatz <span class="unit">%</span></label><input type="number" id="steuersatz" value="42" onchange="calcSteuer()"></div>
-          <div class="field"><label>AfA-Satz <span class="unit">%/a</span></label>
+        <div class="section-label">Persönliche Steuerdaten</div>
+        <div class="fields-4">
+          <div class="field"><label>Pers. Steuersatz <span class="unit">%</span></label><input type="number" id="steuersatz" value="42" onchange="calcSteuer()"></div>
+          <div class="field"><label>Solidaritätszuschlag <span class="unit">%</span></label><input type="number" id="soli" value="0" step="0.1" onchange="calcSteuer()" title="5,5% des ESt-Betrags falls anwendbar"></div>
+          <div class="field"><label>Kirchensteuer <span class="unit">%</span></label><input type="number" id="kirche" value="0" step="0.1" onchange="calcSteuer()" title="8% oder 9% je Bundesland falls zutreffend"></div>
+          <div class="field"><label>Betrachtungszeitraum <span class="unit">Jahre</span></label><input type="number" id="steuerjahre" value="20" onchange="calcSteuer()"></div>
+        </div>
+
+        <div class="section-label">Gebäude-AfA (§7 Abs.4 EStG)</div>
+        <div class="fields-4">
+          <div class="field"><label>AfA-Satz</label>
             <select id="afasatz" onchange="calcSteuer()">
-              <option value="2">2% (Baujahr vor 1925)</option>
-              <option value="2" selected>2% (Standard)</option>
-              <option value="2.5">2,5% (Baujahr vor 1925)</option>
-              <option value="3">3% (Neubau ab 2023)</option>
-              <option value="5">5% (Denkmal-AfA)</option>
+              <option value="2" selected>2,0 % — Gebäude ab 1925 (Standard)</option>
+              <option value="2.5">2,5 % — Gebäude vor 1925</option>
+              <option value="3">3,0 % — Neubau ab 01.01.2023</option>
+              <option value="4">4,0 % — Neubau ab 01.01.2023 (degr. linear)</option>
+              <option value="5">5,0 % — Denkmal §7i/7h EStG</option>
+              <option value="9">9,0 % — Denkmal-AfA Jahr 1–8</option>
             </select>
           </div>
-          <div class="field"><label>AfA-Bemessungsgrundlage</label><div class="input-wrap"><input type="number" id="afabasis" value="1200000" onchange="calcSteuer()"><span class="input-suffix">€</span></div></div>
-          <div class="field"><label>Sofortabzugsfähige Kosten</label><div class="input-wrap"><input type="number" id="sofort" value="0" onchange="calcSteuer()"><span class="input-suffix">€</span></div></div>
-          <div class="field"><label>Betrachtungszeitraum <span class="unit">Jahre</span></label><input type="number" id="steuerjahre" value="20" onchange="calcSteuer()"></div>
-          <div class="field"><label>Mieteinnahmen p.a.</label><div class="input-wrap"><input type="number" id="stmiete" value="81600" onchange="calcSteuer()"><span class="input-suffix">€</span></div></div>
+          <div class="field"><label>AfA-Bemessungsgrundlage</label>
+            <div class="input-wrap"><input type="number" id="afabasis" value="1200000" onchange="calcSteuer()" step="1000"><span class="input-suffix">€</span></div>
+          </div>
+          <div class="field"><label>Sofortabzug Erhaltungsaufwand</label>
+            <div class="input-wrap"><input type="number" id="sofort" value="0" onchange="calcSteuer()" step="1000"><span class="input-suffix">€</span></div>
+          </div>
+          <div class="field"><label>Instandhaltung p.a.</label>
+            <div class="input-wrap"><input type="number" id="st-instandh" value="0" onchange="calcSteuer()" step="500"><span class="input-suffix">€</span></div>
+          </div>
         </div>
-        <div class="afa-info" id="afa-hinweis">AfA-Informationen werden nach Eingabe berechnet.</div>
+
+        <div class="section-label">Mieteinnahmen & Werbungskosten</div>
+        <div class="fields-4">
+          <div class="field" style="grid-column:span 2"><label>Mieteinnahmen p.a. <span style="color:var(--green);font-size:10px">(auto aus Haupteingabe)</span></label>
+            <div class="input-wrap"><input type="number" id="stmiete" value="0" onchange="calcSteuer()" step="500"><span class="input-suffix">€</span></div>
+          </div>
+          <div class="field"><label>Sonstige Werbungskosten p.a.</label>
+            <div class="input-wrap"><input type="number" id="st-sonstwk" value="0" onchange="calcSteuer()" step="200"><span class="input-suffix">€</span></div>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn-outline" onclick="stSyncMiete()" style="font-size:12px;height:36px;width:100%">↺ Miete synchronisieren</button>
+          </div>
+        </div>
+        <div class="afa-info" id="afa-hinweis" style="margin-top:8px"></div>
       </div>
     </div>
+
     <div class="panel">
-      <div class="panel-head">Steuerliche Ergebnisse</div>
+      <div class="panel-head">Steuerliche Ergebnisse — Übersicht</div>
       <div class="panel-body">
         <div class="grid3" style="margin-bottom:12px">
           <div class="metric good"><div class="metric-label">AfA p.a.</div><div class="metric-value" id="st-afa">--</div><div class="metric-sub">Gebäudeabschreibung</div></div>
           <div class="metric good"><div class="metric-label">Steuerersparnis AfA p.a.</div><div class="metric-value" id="st-erspAfA">--</div><div class="metric-sub">bei pers. Steuersatz</div></div>
-          <div class="metric info"><div class="metric-label">Zinsen steuerlich p.a.</div><div class="metric-value" id="st-zinsAbzug">--</div><div class="metric-sub">Werbungskosten</div></div>
-          <div class="metric good"><div class="metric-label">Steuerersparnis Zinsen</div><div class="metric-value" id="st-erspZins">--</div><div class="metric-sub">p.a.</div></div>
-          <div class="metric good"><div class="metric-label">Gesamtersparnis p.a.</div><div class="metric-value" id="st-gesamt">--</div><div class="metric-sub">AfA + Zinsen</div></div>
-          <div class="metric teal"><div class="metric-label">Steuerersparnis gesamt</div><div class="metric-value" id="st-gesamt-lz">--</div><div class="metric-sub">über Laufzeit</div></div>
+          <div class="metric info"><div class="metric-label">Zinsen Jahr 1 (WK)</div><div class="metric-value" id="st-zinsAbzug">--</div><div class="metric-sub">Werbungskosten</div></div>
+          <div class="metric good"><div class="metric-label">Steuerersparnis Zinsen p.a.</div><div class="metric-value" id="st-erspZins">--</div><div class="metric-sub">Jahr 1 (sinkt jährl.)</div></div>
+          <div class="metric good"><div class="metric-label">Gesamtersparnis p.a.</div><div class="metric-value" id="st-gesamt">--</div><div class="metric-sub">AfA + Zinsen + WK</div></div>
+          <div class="metric teal"><div class="metric-label">Gesamtersparnis gesamt</div><div class="metric-value" id="st-gesamt-lz">--</div><div class="metric-sub">über Laufzeit kumuliert</div></div>
         </div>
-        <div style="position:relative;height:160px"><canvas id="chart-steuer"></canvas></div>
+        <div style="position:relative;height:180px"><canvas id="chart-steuer"></canvas></div>
       </div>
     </div>
   </div>
 
+  <!-- JAHRES-ÜBERSICHT -->
   <div class="panel">
-    <div class="panel-head">Ertragssteuer — Übersicht Einnahmen & Abzüge</div>
-    <div class="panel-body">
+    <div class="panel-head" style="background:var(--navy,#1a1a17);color:#fff">
+      Einkünfte aus Vermietung & Verpachtung — Jahresverlauf (§21 EStG)
+      <span style="margin-left:auto;font-size:11px;opacity:.6">Vereinfachte Darstellung · Zinsen sinken durch Tilgung</span>
+    </div>
+    <div style="overflow-x:auto">
       <table class="data-table">
-        <thead><tr><th>Position</th><th>p.a.</th><th>Steuerersparnis p.a.</th><th>Über Laufzeit</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Jahr</th>
+            <th>Mieteinnahmen</th>
+            <th>AfA</th>
+            <th>Schuldzinsen</th>
+            <th>Instandh.</th>
+            <th>Sonst. WK</th>
+            <th>Einkünfte V+V</th>
+            <th>Steuerbelastung</th>
+            <th>Steuerersparnis</th>
+            <th>Netto-CF (nach Steuern)</th>
+          </tr>
+        </thead>
         <tbody id="st-table-body"></tbody>
+        <tfoot id="st-table-foot"></tfoot>
       </table>
-      <div style="margin-top:10px;font-size:10px;color:var(--text3);line-height:1.6">
-        <strong>Hinweis:</strong> Diese Berechnung dient der Orientierung und ersetzt keine steuerliche Beratung. Individuelle Steuervorteile (z.B. Denkmal-AfA §7i/7h, Sonderabschreibungen §7b) sollten mit einem Steuerberater abgestimmt werden.
-      </div>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--text3);line-height:1.6;padding:0 4px">
+      <strong>Hinweis:</strong> Vereinfachte Darstellung. Einkünfte V+V = Mieteinnahmen − AfA − Schuldzinsen − Instandhaltung − sonstige Werbungskosten. Steuerersparnis = Verlust × Steuersatz (Verlustverrechnung mit anderen Einkünften unterstellt). Individuelle steuerliche Gestaltung (Denkmal-AfA §7i/7h, Sonderabschreibungen §7b, Günstigerprüfung) ist mit einem Steuerberater abzustimmen.
     </div>
   </div>
 </div>
@@ -620,6 +724,119 @@ canvas{max-width:100%;display:block}
           <div class="metric info"><div class="metric-label">Eigenkapitalrendite Wert</div><div class="metric-value" id="bew-ekr">--</div><div class="metric-sub">Wertsteigerung/EK</div></div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB: DCF-MODELL ═══════════════════ -->
+<div id="tab-dcf" class="tab-page">
+
+  <div class="grid2c" style="margin-bottom:14px">
+
+    <!-- LINKE SPALTE: EINGABEN -->
+    <div style="display:flex;flex-direction:column;gap:var(--gap)">
+
+      <div class="panel" style="border-top:3px solid var(--blue)">
+        <div class="panel-head" style="background:var(--blue-bg);color:var(--blue)">DCF-Parameter</div>
+        <div class="panel-body">
+          <div class="section-label">Diskontierungssatz</div>
+          <div class="fields-4">
+            <div class="field"><label>WACC / Diskont. <span class="unit">%</span></label><input type="number" id="dcf-wacc" value="5" step="0.5" onchange="calcDCF()"></div>
+            <div class="field"><label>Eigenkapitalkost. <span class="unit">%</span></label><input type="number" id="dcf-ke" value="7" step="0.5" onchange="calcDCF()"></div>
+            <div class="field"><label>Fremdkapitalkost. <span class="unit">%</span></label><input type="number" id="dcf-kd" value="3,5" step="0.5" onchange="calcDCF()"></div>
+            <div class="field"><label>EK-Anteil <span class="unit">%</span></label><input type="number" id="dcf-ek-anteil" value="40" onchange="calcDCF()"></div>
+          </div>
+          <div class="section-label">Betrachtungszeitraum & Exit</div>
+          <div class="fields-4">
+            <div class="field"><label>Haltedauer <span class="unit">Jahre</span></label><input type="number" id="dcf-lz" value="10" onchange="calcDCF()"></div>
+            <div class="field"><label>Exit-Kap.-Zins <span class="unit">%</span></label><input type="number" id="dcf-exit-kap" value="4" step="0.25" onchange="calcDCF()"></div>
+            <div class="field"><label>Verkaufskosten <span class="unit">%</span></label><input type="number" id="dcf-verkaufkosten" value="3" step="0.5" onchange="calcDCF()"></div>
+            <div class="field"><label>Instandh.-Rücklage <span class="unit">€/m²/a</span></label><input type="number" id="dcf-instandh" value="12" onchange="calcDCF()"></div>
+          </div>
+          <div class="section-label">Leerstand & Mietentwicklung</div>
+          <div class="fields-4">
+            <div class="field"><label>Leerstand Jahr 1 <span class="unit">%</span></label><input type="number" id="dcf-leer1" value="3" step="0.5" onchange="calcDCF()"></div>
+            <div class="field"><label>Leerstand Ziel <span class="unit">%</span></label><input type="number" id="dcf-leer-ziel" value="2" step="0.5" onchange="calcDCF()"></div>
+            <div class="field"><label>Mietsteigerung <span class="unit">%/a</span></label><input type="number" id="dcf-mietstieg" value="2" step="0.5" onchange="calcDCF()"></div>
+            <div class="field"><label>Bewirtschaftung <span class="unit">%</span></label><input type="number" id="dcf-bewirt" value="22" onchange="calcDCF()"></div>
+          </div>
+          <div class="section-label">Szenario</div>
+          <div class="fields-4">
+            <div class="field" style="grid-column:1/-1"><label>Szenario</label>
+              <select id="dcf-szenario" onchange="calcDCF()">
+                <option value="base">Base Case — Realistische Annahmen</option>
+                <option value="bull">Bull Case — Optimistische Annahmen</option>
+                <option value="bear">Bear Case — Konservative Annahmen</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="calcDCF()" style="margin-top:8px;width:100%">DCF berechnen</button>
+        </div>
+      </div>
+
+      <!-- FORMELERKLÄRUNG -->
+      <div class="panel">
+        <div class="panel-head">Methodik</div>
+        <div class="panel-body" style="font-size:12px;color:var(--text2);line-height:1.8">
+          <div style="font-family:monospace;font-size:11px;background:var(--surface2);padding:10px;border-radius:var(--r);color:var(--blue);margin-bottom:8px">
+            DCF = Σ CF<sub>t</sub> / (1+r)<sup>t</sup> + Restwert / (1+r)<sup>n</sup>
+          </div>
+          <div><b>CF<sub>t</sub></b> = Nettomiete<sub>t</sub> − Instandhaltung<sub>t</sub> − Kapitaldienst</div>
+          <div><b>Nettomiete</b> = Kaltmiete × WF × 12 × (1−Leerstand) × (1−Bewirtschaftung%)</div>
+          <div><b>Restwert</b> = Nettomiete Jahr <i>n</i> / Exit-Kap.-Zins × (1−Verkaufskosten)</div>
+          <div><b>WACC</b> = EK-Anteil × KE + FK-Anteil × KD × (1−Steuersatz)</div>
+          <div style="margin-top:8px;padding:8px;background:var(--amber-bg);border-radius:var(--r);color:var(--amber);font-size:11px">
+            <b>Hinweis:</b> DCF-Ergebnisse sind stark von den Annahmen abhängig. Als Planungswert geeignet, ersetzt keine gutachterliche Bewertung.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RECHTE SPALTE: ERGEBNISSE -->
+    <div style="display:flex;flex-direction:column;gap:var(--gap)">
+
+      <!-- KPI KACHELN -->
+      <div class="grid3" id="dcf-kpis">
+        <div class="metric info"><div class="metric-label">DCF-Wert (Gesamtinvestition)</div><div class="metric-value" id="dcf-res-gesamtwert">–</div><div class="metric-sub">Barwert aller Cashflows + Restwert</div></div>
+        <div class="metric"><div class="metric-label">Equity Value (EK-Wert)</div><div class="metric-value" id="dcf-res-equity">–</div><div class="metric-sub">DCF-Wert − Fremdkapital</div></div>
+        <div class="metric"><div class="metric-label">Restwert (Terminal Value)</div><div class="metric-value" id="dcf-res-tv">–</div><div class="metric-sub">Verkaufserlös am Laufzeitende</div></div>
+        <div class="metric"><div class="metric-label">IRR (Gesamtrendite)</div><div class="metric-value" id="dcf-res-irr">–</div><div class="metric-sub">Gesamtprojektrendite</div></div>
+        <div class="metric"><div class="metric-label">Equity-IRR</div><div class="metric-value" id="dcf-res-equity-irr">–</div><div class="metric-sub">Eigenkapitalrendite</div></div>
+        <div class="metric"><div class="metric-label">Kapitalwert (NPV)</div><div class="metric-value" id="dcf-res-npv">–</div><div class="metric-sub">DCF-Wert − Gesamtinvestition</div></div>
+        <div class="metric"><div class="metric-label">Multiple on Equity (MoE)</div><div class="metric-value" id="dcf-res-moe">–</div><div class="metric-sub">Rückfluss / einges. EK</div></div>
+        <div class="metric"><div class="metric-label">Ø Nettomiete p.a.</div><div class="metric-value" id="dcf-res-nettomiete">–</div><div class="metric-sub">Über Haltedauer</div></div>
+        <div class="metric"><div class="metric-label">Ø Cashflow p.a.</div><div class="metric-value" id="dcf-res-cf">–</div><div class="metric-sub">Nach Kapitaldienst</div></div>
+      </div>
+
+      <!-- CASHFLOW-TABELLE -->
+      <div class="panel">
+        <div class="panel-head" style="background:var(--blue);color:#fff">
+          Jährliche Cashflow-Tabelle
+          <span style="margin-left:auto;font-size:11px;opacity:.7" id="dcf-szenario-label">Base Case</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Jahr</th>
+                <th>Kaltmiete</th>
+                <th>Leerstand</th>
+                <th>Nettomiete</th>
+                <th>Bewirtsch.</th>
+                <th>Instandh.</th>
+                <th>Kapitaldienst</th>
+                <th>Cashflow</th>
+                <th>Barwert CF</th>
+                <th>Kum. Barwert</th>
+              </tr>
+            </thead>
+            <tbody id="dcf-tbody"></tbody>
+            <tfoot id="dcf-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1240,7 +1457,7 @@ function calc(){
   // CO₂-Kosten: als Szenariowerte (nicht als absolute Wahrheit)
   S.co2Faktor=co2Faktor;
   S.co2ProjPreis=v('co2_proj_preis')||200; // variabler Prognosewert
-  const roi=netto>0?((gesamtnutzen-netto)/netto)*100:0;
+
   const roiCard=g('m-roi-card');
   g('m-roi').textContent=pct(roi,0);
   g('m-roi-sub').textContent='über '+lz+' Jahre';
@@ -1314,80 +1531,342 @@ function calc(){
 // ── FINANZIERUNGSPLAN ──
 let chartTilg=null;
 function calcFinanzplan(){
-  const fk=S.fk;
-  const zins=Math.max(0.001, v('zins')-v('zinsv'));
-  const i=zins/100;
-  const n=Math.max(1,v('laufzeit'));
-  if(fk<=0){g('fp-darlehen').textContent='0 €';return;}
-  // Echte Annuitätenformel: A = K × i(1+i)^n / ((1+i)^n - 1)
-  const ann = i>0 ? fk*(i*Math.pow(1+i,n))/(Math.pow(1+i,n)-1) : fk/n;
-  let schuld=fk,gZins=0;
-  const rows=[];let vollTilg=lz;
-  for(let y=1;y<=50;y++){
-    const zinsJ=schuld*zins/100;
-    const tilgJ=Math.min(ann-zinsJ,schuld);
-    gZins+=zinsJ;
-    rows.push({y,anfang:schuld,zins:zinsJ,tilg:tilgJ,ende:Math.max(0,schuld-tilgJ)});
-    schuld=Math.max(0,schuld-tilgJ);
-    if(schuld<=0){vollTilg=y;break;}
+  const fk   = S.fk || 0;
+  const zins = Math.max(0.001, v('zins') - v('zinsv')); // Effektivzins nach KfW-Vergünstigung
+  const zinsBrut = Math.max(0.001, v('zins'));           // Nominalzins ohne KfW
+  const i    = zins / 100;
+  const iBrut= zinsBrut / 100;
+  const n    = Math.max(1, v('laufzeit'));               // Laufzeit in Jahren
+
+  if(fk <= 0){
+    ['fp-darlehen','fp-zins','fp-ann','fp-gesamtzins','fp-gesamt','fp-tilgjahr'].forEach(id=>{
+      const el=g(id); if(el) el.textContent='0 €';
+    });
+    const tb=g('tilg-body'); if(tb) tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Kein Fremdkapital — Projekt vollständig aus Eigenkapital finanziert.</td></tr>';
+    return;
   }
-  g('fp-darlehen').textContent=eur(fk);
-  g('fp-zins').textContent=pct(zins);
-  g('fp-ann').textContent=eur(ann);
-  g('fp-gesamtzins').textContent=eur(gZins);
-  g('fp-gesamt').textContent=eur(fk+gZins);
-  g('fp-tilgjahr').textContent=vollTilg+' Jahre';
 
-  g('tilg-body').innerHTML=rows.filter((_,i)=>i<lz).map(r=>`<tr><td>${r.y}</td><td>${eur(r.anfang)}</td><td class="neg">${eur(r.zins)}</td><td class="pos">${eur(r.tilg)}</td><td>${eur(r.ende)}</td></tr>`).join('');
+  // ── Echte Annuitätenformel ──
+  // A = K × i(1+i)^n / ((1+i)^n − 1)
+  const ann  = i > 0 ? fk * (i * Math.pow(1+i,n)) / (Math.pow(1+i,n) - 1) : fk / n;
+  const annMo = ann / 12;
 
-  const yrs=rows.slice(0,Math.min(lz,rows.length)).map(r=>r.y);
-  const schuldData=rows.slice(0,Math.min(lz,rows.length)).map(r=>Math.round(r.ende));
-  const zinsData=rows.slice(0,Math.min(lz,rows.length)).map(r=>Math.round(r.zins));
+  // ── Tilgungsplan berechnen (bis Schuld = 0, max 50 Jahre) ──
+  let schuld = fk;
+  let gZins  = 0;
+  let vollTilg = n;
+  const rows = [];
 
-  if(chartTilg)chartTilg.destroy();
-  const ctx=g('chart-tilg').getContext('2d');
-  chartTilg=new Chart(ctx,{type:'bar',data:{labels:yrs,datasets:[{label:'Restschuld',data:schuldData,backgroundColor:'#e3eef9',borderColor:'#1458a0',borderWidth:1,yAxisID:'y'},{label:'Zinsen p.a.',data:zinsData,type:'line',borderColor:'#982020',backgroundColor:'rgba(152,32,32,.1)',borderWidth:2,fill:true,tension:.3,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},scales:{y:{ticks:{font:{size:9},callback:v=>v>=1000?Math.round(v/1000)+'T':v},grid:{color:'rgba(0,0,0,.05)'}},y1:{position:'right',ticks:{font:{size:9},callback:v=>v>=1000?Math.round(v/1000)+'T':v},grid:{display:false}}}}});
+  for(let y = 1; y <= 50; y++){
+    const zinsJ = schuld * i;                          // Zinsanteil = Restschuld × i ✓
+    const tilgJ = Math.min(ann - zinsJ, schuld);       // Tilgungsanteil
+    const ende  = Math.max(0, schuld - tilgJ);
+    const zinsAnt = ann > 0 ? (zinsJ / ann) * 100 : 0;
+    const tilgAnt = 100 - zinsAnt;
+    gZins  += zinsJ;
+    rows.push({ y, anfang: schuld, zins: zinsJ, tilg: tilgJ, ende, zinsAnt, tilgAnt });
+    schuld = ende;
+    if(schuld <= 0.01){ vollTilg = y; break; }
+  }
+
+  // ── KPI-Kacheln ──
+  g('fp-darlehen').textContent = eur(fk);
+  g('fp-zins').textContent     = pct(zins);
+  g('fp-ann').textContent      = eur(ann);
+  g('fp-ann-mo').textContent   = eur(annMo) + ' / Monat';
+  g('fp-gesamtzins').textContent = eur(gZins);
+  g('fp-gesamt').textContent   = eur(fk + gZins);
+  g('fp-tilgjahr').textContent = vollTilg + ' Jahre';
+  g('fp-laufzeit-label').textContent = n + ' Jahre Laufzeit · ' + fmt(vollTilg) + ' Jahre bis Volltilgung';
+
+  // ── KfW-Vergleich (nur anzeigen wenn Zinsvergünstigung > 0) ──
+  const zinsv = v('zinsv');
+  const kfwBox = g('fp-kfw-vergleich');
+  if(kfwBox){
+    if(zinsv > 0){
+      kfwBox.style.display = 'block';
+      // Gesamtzinsen ohne KfW
+      let gZinsBrut = 0, schuldBrut = fk;
+      const annBrut = iBrut > 0 ? fk*(iBrut*Math.pow(1+iBrut,n))/(Math.pow(1+iBrut,n)-1) : fk/n;
+      for(let y=1; y<=50; y++){
+        const zJ = schuldBrut * iBrut;
+        const tJ = Math.min(annBrut - zJ, schuldBrut);
+        gZinsBrut += zJ;
+        schuldBrut = Math.max(0, schuldBrut - tJ);
+        if(schuldBrut <= 0.01) break;
+      }
+      g('fp-zins-ohne').textContent      = pct(zinsBrut);
+      g('fp-zins-mit').textContent       = pct(zins);
+      g('fp-zins-ersparnis').textContent = eur(gZinsBrut - gZins);
+    } else {
+      kfwBox.style.display = 'none';
+    }
+  }
+
+  // ── Tilgungsplan-Tabelle ──
+  g('tilg-body').innerHTML = rows.map((r,idx)=>{
+    const rowStyle = idx % 2 === 0 ? '' : 'background:var(--surface2)';
+    return `<tr style="${rowStyle}">
+      <td style="font-weight:600">${r.y}</td>
+      <td>${eur(r.anfang)}</td>
+      <td class="neg">${eur(r.zins)}</td>
+      <td class="pos">${eur(r.tilg)}</td>
+      <td style="font-weight:500">${r.ende < 1 ? '<span style="color:var(--green)">✓ Getilgt</span>' : eur(r.ende)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(r.zinsAnt)}%;background:var(--red,#c0392b);opacity:.7"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text2);min-width:32px">${fmt(r.zinsAnt,0)} %</span>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(r.tilgAnt)}%;background:var(--green);opacity:.7"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text2);min-width:32px">${fmt(r.tilgAnt,0)} %</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Fußzeile Tilgungsplan
+  const tfoot = g('tilg-foot');
+  if(tfoot) tfoot.innerHTML = `<tr style="background:var(--blue);color:#fff;font-weight:600">
+    <td>Gesamt</td>
+    <td>—</td>
+    <td>${eur(gZins)}</td>
+    <td>${eur(fk)}</td>
+    <td>—</td>
+    <td colspan="2" style="font-size:11px">Annuität: ${eur(ann)} p.a. = ${eur(annMo)} / Monat</td>
+  </tr>`;
+
+  // ── Szenarien-Vergleich ──
+  const szenarien = [
+    { label: '− 1,0 % (günstig)',  z: zins - 1.0 },
+    { label: `${fmt(zins,1).replace('.',',')} % (Basis)`, z: zins, base: true },
+    { label: '+ 0,5 %',           z: zins + 0.5 },
+    { label: '+ 1,0 %',           z: zins + 1.0 },
+    { label: '+ 2,0 % (stress)',   z: zins + 2.0 },
+  ].filter(s => s.z > 0);
+
+  const annBase = ann;
+  const gZinsBase = gZins;
+
+  g('fp-szenarien-body').innerHTML = szenarien.map(sz => {
+    const iS = sz.z / 100;
+    const annS = iS > 0 ? fk*(iS*Math.pow(1+iS,n))/(Math.pow(1+iS,n)-1) : fk/n;
+    let gZS = 0, schS = fk, vtS = n;
+    for(let y=1; y<=50; y++){
+      const zJ=schS*iS; const tJ=Math.min(annS-zJ,schS);
+      gZS+=zJ; schS=Math.max(0,schS-tJ);
+      if(schS<=0.01){vtS=y;break;}
+    }
+    const mehrkost = gZS - gZinsBase;
+    const isBase = sz.base;
+    const style = isBase ? 'background:var(--blue-bg);font-weight:600' : '';
+    return `<tr style="${style}">
+      <td>${sz.label}${isBase?' ←':''}  </td>
+      <td>${eur(annS)}</td>
+      <td>${eur(annS/12)}</td>
+      <td>${eur(gZS)}</td>
+      <td>${eur(fk+gZS)}</td>
+      <td>${vtS} Jahre</td>
+      <td class="${mehrkost>0?'neg':mehrkost<0?'pos':''}">${mehrkost===0?'—':(mehrkost>0?'+':'')+eur(mehrkost)}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Chart ──
+  const yrs       = rows.map(r => r.y);
+  const schuldData = rows.map(r => Math.round(r.ende));
+  const zinsData   = rows.map(r => Math.round(r.zins));
+  const tilgData   = rows.map(r => Math.round(r.tilg));
+
+  if(chartTilg) chartTilg.destroy();
+  chartTilg = new Chart(g('chart-tilg').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: yrs,
+      datasets: [
+        { label: 'Zinsen p.a.', data: zinsData,
+          backgroundColor: 'rgba(192,57,43,.55)', borderColor: '#c0392b', borderWidth: 1, stack: 'a' },
+        { label: 'Tilgung p.a.', data: tilgData,
+          backgroundColor: 'rgba(13,122,78,.5)', borderColor: '#0d7a4e', borderWidth: 1, stack: 'a' },
+        { label: 'Restschuld', data: schuldData,
+          type: 'line', borderColor: '#1458a0', backgroundColor: 'rgba(20,88,160,.06)',
+          borderWidth: 2, fill: true, tension: .3, pointRadius: 0, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 9 } }, grid: { display: false } },
+        y: { stacked: true, ticks: { font: { size: 9 }, callback: v => v>=1000 ? Math.round(v/1000)+'T' : v },
+             grid: { color: 'rgba(0,0,0,.05)' } },
+        y1: { position: 'right',
+              ticks: { font: { size: 9 }, callback: v => v>=1000 ? Math.round(v/1000)+'T' : v },
+              grid: { display: false } }
+      }
+    }
+  });
 }
 
 // ── STEUER ──
 let chartSteuer=null;
+function stSyncMiete(){
+  // Mieteinnahmen aus Haupteingabe übernehmen
+  const miete = S.mieteJahrNeu || S.mieteJahr || 0;
+  const el = g('stmiete');
+  if(el && miete>0){ el.value=Math.round(miete); calcSteuer(); }
+}
+
 function calcSteuer(){
-  const stSatz=v('steuersatz')/100;
-  const afaS=v('afasatz')/100;
-  const afaBasis=v('afabasis');
-  const sofort=v('sofort');
-  const stJahre=v('steuerjahre');
-  const stMiete=v('stmiete');
-  const ann=S.ann||0;
-  const zinsAnt=S.fk*(S.zins/100);
+  const stSatz    = v('steuersatz') / 100;
+  const soli      = v('soli')       / 100;  // z.B. 0.055
+  const kirche    = v('kirche')     / 100;
+  const afaS      = v('afasatz')    / 100;
+  const afaBasis  = v('afabasis');
+  const sofort    = v('sofort');
+  const stJahre   = Math.round(v('steuerjahre')) || 20;
+  const stMiete   = v('stmiete');
+  const instandh  = v('st-instandh') || 0;
+  const sonstwk   = v('st-sonstwk')  || 0;
 
-  const afaJahr=afaBasis*afaS;
-  const ersAfA=afaJahr*stSatz;
-  const ersZins=zinsAnt*stSatz;
-  const ersSofort=sofort*stSatz;
-  const gesamt=ersAfA+ersZins;
+  // Effektiver Gesamtsteuersatz inkl. Soli und Kirchensteuer
+  const stSatzEff = stSatz * (1 + soli + kirche);
 
-  g('st-afa').textContent=eur(afaJahr);
-  g('st-erspAfA').textContent=eur(ersAfA);
-  g('st-zinsAbzug').textContent=eur(zinsAnt);
-  g('st-erspZins').textContent=eur(ersZins);
-  g('st-gesamt').textContent=eur(gesamt);
-  g('st-gesamt-lz').textContent=eur(gesamt*stJahre+ersSofort);
+  // AfA konstant über Laufzeit
+  const afaJahr   = afaBasis * afaS;
+  const ersAfA    = afaJahr  * stSatzEff;
+  const ersSofort = sofort   * stSatzEff;
 
-  g('afa-hinweis').innerHTML=`<strong>AfA-Satz ${v('afasatz')}%</strong> auf Bemessungsgrundlage ${eur(afaBasis)} = <strong>${eur(afaJahr)} p.a.</strong> Steuerersparnis bei ${v('steuersatz')}% Satz: <strong>${eur(ersAfA)} p.a.</strong>${sofort>0?` Sofortabzug (Erhaltungsaufwand): ${eur(ersSofort)} im Jahr 1.`:''}`;
+  // Schuldzinsen: jährlich aus Tilgungsplan (sinkend durch Tilgung)
+  // Echte Annuität: Zinsanteil = Restschuld × i
+  const fk = S.fk || 0;
+  const i  = Math.max(0.001, (S.zins||3.5) / 100);
+  const n  = Math.max(1, S.lz || 20);
+  const ann = fk>0 && i>0 ? fk*(i*Math.pow(1+i,n))/(Math.pow(1+i,n)-1) : 0;
 
-  g('st-table-body').innerHTML=`
-    <tr><td>Mieteinnahmen p.a.</td><td class="pos">${eur(stMiete)}</td><td>—</td><td class="pos">${eur(stMiete*stJahre)}</td></tr>
-    <tr><td>Gebäude-AfA (${v('afasatz')}%)</td><td class="neg">-${eur(afaJahr)}</td><td class="pos">${eur(ersAfA)}</td><td class="pos">${eur(ersAfA*stJahre)}</td></tr>
-    <tr><td>Schuldzinsen (Werbungskosten)</td><td class="neg">-${eur(zinsAnt)}</td><td class="pos">${eur(ersZins)}</td><td class="pos">${eur(ersZins*stJahre)}</td></tr>
-    ${sofort>0?`<tr><td>Sofortabzug Erhaltungsaufwand</td><td class="neg">-${eur(sofort)}</td><td class="pos">${eur(ersSofort)}</td><td class="pos">${eur(ersSofort)}</td></tr>`:''}
-    <tr><td>Gesamtsteuerersparnis</td><td>—</td><td class="pos">${eur(gesamt)}</td><td class="pos">${eur(gesamt*stJahre+ersSofort)}</td></tr>`;
+  // Jahresverlauf berechnen
+  let schuld   = fk;
+  let kumErsparnis = ersSofort; // Sofortabzug im Jahr 1
+  let zinsJahr1 = 0;
+  const rows = [];
 
-  const yrs=Array.from({length:Math.min(stJahre,20)},(_,i)=>i+1);
-  const ersData=yrs.map(()=>Math.round(gesamt));
-  if(chartSteuer)chartSteuer.destroy();
-  const ctx=g('chart-steuer').getContext('2d');
-  chartSteuer=new Chart(ctx,{type:'bar',data:{labels:yrs,datasets:[{label:'Steuerersparnis p.a.',data:ersData,backgroundColor:'#dff2ea',borderColor:'#0a6147',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:12}}},scales:{y:{ticks:{font:{size:9},callback:v=>v>=1000?Math.round(v/1000)+'T€':v},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{font:{size:9}}}}}});
+  for(let t=1; t<=Math.min(stJahre, 40); t++){
+    const zinsT    = schuld * i;
+    const tilgT    = Math.min(ann - zinsT, schuld);
+    schuld         = Math.max(0, schuld - tilgT);
+    if(t===1) zinsJahr1 = zinsT;
+
+    // Einkünfte V+V = Mieteinnahmen − AfA − Zinsen − Instandhaltung − sonstige WK
+    // + Sofortabzug nur im Jahr 1
+    const sofortT  = t===1 ? sofort : 0;
+    const einkVV   = stMiete - afaJahr - zinsT - instandh - sonstwk - sofortT;
+
+    // Steuerbelastung / -ersparnis
+    // Positiv: Steuern zu zahlen; Negativ: Verlust → Ersparnis durch Verrechnung
+    const steuerBelastung = einkVV * stSatzEff;
+    const steuerErsparnis = einkVV < 0 ? Math.abs(steuerBelastung) : 0;
+    const steuerMehr      = einkVV > 0 ? steuerBelastung : 0;
+
+    // Netto-Cashflow nach Steuern = Miete - Kapitaldienst (Annuität) ± Steuereffekt
+    const nettoCF = stMiete - ann - (einkVV>0 ? steuerMehr : -steuerErsparnis);
+
+    kumErsparnis += steuerErsparnis - steuerMehr;
+
+    rows.push({ t, stMiete, afaJahr, zinsT, instandh, sonstwk, sofortT,
+                einkVV, steuerBelastung, steuerErsparnis, steuerMehr, nettoCF, kumErsparnis });
+  }
+
+  // KPI-Kacheln
+  const gesamtErsparnis = rows.reduce((s,r)=>s+(r.steuerErsparnis-r.steuerMehr),0) + ersSofort;
+  const erspZins1  = zinsJahr1 * stSatzEff;
+  const gesamtJahr1 = ersAfA + erspZins1;
+
+  g('st-afa').textContent        = eur(afaJahr);
+  g('st-erspAfA').textContent    = eur(ersAfA);
+  g('st-zinsAbzug').textContent  = eur(zinsJahr1);
+  g('st-erspZins').textContent   = eur(erspZins1);
+  g('st-gesamt').textContent     = eur(gesamtJahr1);
+  g('st-gesamt-lz').textContent  = eur(gesamtErsparnis);
+
+  // AfA-Infozeile
+  g('afa-hinweis').innerHTML =
+    `<strong>AfA ${v('afasatz')}%</strong> auf ${eur(afaBasis)} = <strong>${eur(afaJahr)} p.a.</strong> · `+
+    `Effektiver Steuersatz: <strong>${fmt(stSatzEff*100,1).replace('.',',')}%</strong>`+
+    (sofort>0 ? ` · Sofortabzug Jahr 1: <strong>${eur(ersSofort)}</strong>` : '');
+
+  // Jahrestabelle
+  g('st-table-body').innerHTML = rows.map(r=>{
+    const vvClass = r.einkVV < 0 ? 'neg' : 'pos';
+    const stClass = r.steuerErsparnis > 0 ? 'pos' : 'neg';
+    return `<tr>
+      <td style="font-weight:600">${r.t}</td>
+      <td class="pos">${eur(r.stMiete)}</td>
+      <td class="neg">−${eur(r.afaJahr)}</td>
+      <td class="neg">−${eur(r.zinsT)}</td>
+      <td class="neg">${r.instandh>0?'−'+eur(r.instandh):'—'}</td>
+      <td class="neg">${(r.sonstwk+r.sofortT)>0?'−'+eur(r.sonstwk+r.sofortT):'—'}</td>
+      <td class="${vvClass}" style="font-weight:500">${eur(r.einkVV)}</td>
+      <td class="${r.steuerMehr>0?'neg':''}"">${r.steuerMehr>0?'−'+eur(r.steuerMehr):'—'}</td>
+      <td class="${stClass}">${r.steuerErsparnis>0?'+'+eur(r.steuerErsparnis):'—'}</td>
+      <td style="font-weight:600;color:${r.nettoCF>=0?'var(--green)':'var(--red)'}">${eur(r.nettoCF)}</td>
+    </tr>`;
+  }).join('');
+
+  // Fußzeile Summen
+  const sumMiete = rows.reduce((s,r)=>s+r.stMiete,0);
+  const sumAfa   = rows.reduce((s,r)=>s+r.afaJahr,0);
+  const sumZins  = rows.reduce((s,r)=>s+r.zinsT,0);
+  const sumErsparnis = rows.reduce((s,r)=>s+r.steuerErsparnis,0);
+  const sumMehr  = rows.reduce((s,r)=>s+r.steuerMehr,0);
+  const sumCF    = rows.reduce((s,r)=>s+r.nettoCF,0);
+  g('st-table-foot').innerHTML = `<tr style="background:var(--surface2);font-weight:600">
+    <td>Summe ${rows.length} Jahre</td>
+    <td class="pos">${eur(sumMiete)}</td>
+    <td class="neg">−${eur(sumAfa)}</td>
+    <td class="neg">−${eur(sumZins)}</td>
+    <td>—</td><td>—</td><td>—</td>
+    <td class="neg">${sumMehr>0?'−'+eur(sumMehr):'—'}</td>
+    <td class="pos">${sumErsparnis>0?'+'+eur(sumErsparnis):'—'}</td>
+    <td style="color:${sumCF>=0?'var(--green)':'var(--red)'}">${eur(sumCF)}</td>
+  </tr>`;
+
+  // Chart: Einkünfte V+V und Steuerersparnis im Jahresverlauf
+  const yrs      = rows.map(r=>r.t);
+  const einkData = rows.map(r=>Math.round(r.einkVV));
+  const erspData = rows.map(r=>Math.round(r.steuerErsparnis - r.steuerMehr));
+
+  if(chartSteuer) chartSteuer.destroy();
+  const ctx = g('chart-steuer').getContext('2d');
+  chartSteuer = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: yrs,
+      datasets:[
+        { label:'Einkünfte V+V', data:einkData,
+          backgroundColor: einkData.map(v=>v<0?'rgba(13,122,78,.25)':'rgba(192,57,43,.2)'),
+          borderColor:     einkData.map(v=>v<0?'#0d7a4e':'#c0392b'),
+          borderWidth:1 },
+        { label:'Steuereffekt (+ Ersparnis / − Mehr)',
+          data: erspData, type:'line',
+          borderColor:'#1458a0', backgroundColor:'rgba(20,88,160,.08)',
+          borderWidth:2, fill:true, tension:.3, pointRadius:2 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{labels:{font:{size:10},boxWidth:12}} },
+      scales:{
+        y:{ ticks:{font:{size:9}, callback:v=>v>=1000?Math.round(v/1000)+'T€':v},
+            grid:{color:'rgba(0,0,0,.05)'}},
+        x:{ ticks:{font:{size:9}} }
+      }
+    }
+  });
 }
 
 // ── BEWERTUNG ──
@@ -1478,9 +1957,10 @@ function showTab(id, btn){
   if(id==='ki'&&btn) btn.style.cssText='background:linear-gradient(135deg,#0a6147,#1458a0);color:#fff;border-color:transparent;outline:2px solid #0a6147';
   if(id==='vergleich'&&btn) btn.style.cssText='border-color:var(--amber);color:var(--amber)';
   if(id==='finanzplan') setTimeout(calcFinanzplan,50);
-  if(id==='steuer') setTimeout(calcSteuer,50);
+  if(id==='steuer'){ stSyncMiete(); setTimeout(calcSteuer,50); }
   if(id==='bewertung') calcBewertung();
   if(id==='geg') calcGEG();
+  if(id==='dcf') setTimeout(calcDCF,50);
   if(id==='vergleich') setTimeout(vgl_calc,50);
   if(id==='einstellungen'){ updateSettingsLicense(); renderProjectList(); updateStorageInfo(); }
 }
@@ -2963,6 +3443,166 @@ function validateFields(){
 }
 
 // ══════════════════════════════════════════
+// DCF-MODELL
+// ══════════════════════════════════════════
+function calcDCF(){
+  // ── Eingaben aus Haupteingabe ──
+  const fl      = v('flaeche')  || S.fl  || 800;
+  const miete   = v('miete')    || S.miete || 8.5;
+  const leer0   = v('leer')     || 3;
+  const vkwVal  = v('vkw')      || S.vkwVal || 0;
+  const netto   = S.netto       || 0;
+  const fk      = S.fk          || 0;
+  const ek      = S.ek          || 100000;
+  const mietNeu = S.mietNeu     || miete;
+
+  // ── DCF-Parameter ──
+  const wacc        = v('dcf-wacc')        || 5;
+  const ke          = v('dcf-ke')          || 7;
+  const kd          = v('dcf-kd')          || 3.5;
+  const ekAnteil    = (v('dcf-ek-anteil')  || 40) / 100;
+  const lz          = Math.round(v('dcf-lz') || 10);
+  const exitKap     = (v('dcf-exit-kap')   || 4)  / 100;
+  const verkKost    = (v('dcf-verkaufkosten')|| 3) / 100;
+  const instandh    = v('dcf-instandh')    || 12;   // €/m²/a
+  const leer1       = (v('dcf-leer1')      || 3)  / 100;
+  const leerZiel    = (v('dcf-leer-ziel')  || 2)  / 100;
+  const mietstieg   = (v('dcf-mietstieg')  || 2)  / 100;
+  const bewirtP     = (v('dcf-bewirt')     || 22) / 100;
+  const szenario    = g('dcf-szenario')?.value || 'base';
+
+  // ── Szenario-Anpassungen ──
+  let mietstiegAdj=mietstieg, leer1Adj=leer1, exitKapAdj=exitKap, waccAdj=wacc/100;
+  if(szenario==='bull'){ mietstiegAdj*=1.5; leer1Adj*=0.7; exitKapAdj*=0.85; waccAdj*=0.9; }
+  if(szenario==='bear'){ mietstiegAdj*=0.5; leer1Adj*=1.5; exitKapAdj*=1.2;  waccAdj*=1.15; }
+
+  // ── WACC neu berechnen wenn Anteile angegeben ──
+  // WACC = EK-Anteil × KE + FK-Anteil × KD (vereinfacht, ohne Steuereffekt)
+  const waccCalc = ekAnteil*(ke/100) + (1-ekAnteil)*(kd/100);
+  const r = waccAdj !== wacc/100 ? waccAdj : waccCalc;
+
+  // ── Echte Annuität auf FK ──
+  const i = Math.max(0.001, kd/100);
+  const annDCF = fk>0 && i>0 ? fk*(i*Math.pow(1+i,lz))/(Math.pow(1+i,lz)-1) : 0;
+
+  // ── Cashflow-Berechnung pro Jahr ──
+  const rows = [];
+  let kumBarwert = 0;
+  let leerAkt = leer1Adj;
+  let mieteAkt = mietNeu > miete ? mietNeu : miete; // Startet mit Miete nach Mod.
+
+  for(let t=1; t<=lz; t++){
+    // Leerstand linear von leer1 auf leerZiel in 5 Jahren
+    leerAkt = t<=5 ? leer1Adj + (leerZiel-leer1Adj)*(t-1)/4 : leerZiel;
+    if(t>1) mieteAkt *= (1+mietstiegAdj);
+
+    const kaltmieteJahr = fl * mieteAkt * 12;
+    const leerAbzug     = kaltmieteJahr * leerAkt;
+    const effMiete      = kaltmieteJahr - leerAbzug;
+    const bewirtAbs     = effMiete * bewirtP;
+    const instandhAbs   = fl * instandh;
+    const nettomiete    = effMiete - bewirtAbs;
+    const cf            = nettomiete - instandhAbs - annDCF;
+    const barwert       = cf / Math.pow(1+r, t);
+    kumBarwert         += barwert;
+
+    rows.push({
+      t, mieteAkt, leerAkt, kaltmieteJahr,
+      effMiete, bewirtAbs, instandhAbs, annDCF,
+      nettomiete, cf, barwert, kumBarwert
+    });
+  }
+
+  // ── Restwert (Terminal Value) ──
+  // Restwert = Nettomiete letztes Jahr / Exit-Kapitalisierungszins
+  const nettomieteEnd = rows[rows.length-1].nettomiete;
+  const restwertBrutto = exitKapAdj > 0 ? nettomieteEnd / exitKapAdj : 0;
+  const restwertNetto  = restwertBrutto * (1-verkKost);
+  const restwertBarwert = restwertNetto / Math.pow(1+r, lz);
+
+  // ── DCF-Gesamtwert ──
+  const sumBarwertCF = rows.reduce((s,r2)=>s+r2.barwert, 0);
+  const dcfGesamtwert = sumBarwertCF + restwertBarwert;
+
+  // ── Equity Value ──
+  const equityValue = dcfGesamtwert - fk;
+
+  // ── NPV (DCF-Wert - Gesamtinvestition) ──
+  const gesamtInvest = (vkwVal||0) + (S.brutto||0);
+  const npvDCF = dcfGesamtwert - gesamtInvest;
+
+  // ── IRR (Gesamtprojekt) ──
+  // Cashflows: -Gesamtinvestition am Anfang, dann jährl. CF + Restwert am Ende
+  const cfArr = rows.map(r2=>r2.cf);
+  cfArr[cfArr.length-1] += restwertNetto;
+  const irrDCF = calcIRR(gesamtInvest>0?gesamtInvest:netto, cfArr);
+
+  // ── Equity-IRR ──
+  const equityCFs = rows.map(r2=>r2.cf - annDCF + (fk>0?(fk*i):0)); // nur EK-Anteil
+  equityCFs[equityCFs.length-1] += (restwertNetto - fk); // Rückzahlung FK
+  const equityIRR = calcIRR(ek, equityCFs);
+
+  // ── MoE (Multiple on Equity) ──
+  const totalRueckfluss = rows.reduce((s,r2)=>s+Math.max(0,r2.cf), 0) + restwertNetto;
+  const moe = ek>0 ? totalRueckfluss/ek : 0;
+
+  // ── KPIs anzeigen ──
+  const szenLabels={base:'Base Case',bull:'Bull Case ↑',bear:'Bear Case ↓'};
+  g('dcf-szenario-label').textContent = szenLabels[szenario]||'Base Case';
+
+  const setKPI=(id,val,good,bad)=>{
+    const el=g(id); if(!el) return;
+    el.textContent=val;
+    const card=el.closest('.metric');
+    if(!card) return;
+    if(good!==undefined) card.className='metric '+(good?'good':bad?'bad':'warn');
+  };
+
+  setKPI('dcf-res-gesamtwert', eur(dcfGesamtwert), dcfGesamtwert>gesamtInvest, dcfGesamtwert<0);
+  setKPI('dcf-res-equity',     eur(equityValue),   equityValue>ek, equityValue<0);
+  setKPI('dcf-res-tv',         eur(restwertNetto));
+  setKPI('dcf-res-irr',        pct(irrDCF),        irrDCF>5, irrDCF<2);
+  setKPI('dcf-res-equity-irr', pct(equityIRR),     equityIRR>7, equityIRR<3);
+  setKPI('dcf-res-npv',        eur(npvDCF),        npvDCF>0, npvDCF<0);
+  setKPI('dcf-res-moe',        fmt(moe,2).replace('.',',')+'×', moe>2, moe<1);
+  setKPI('dcf-res-nettomiete', eur(rows.reduce((s,r2)=>s+r2.nettomiete,0)/lz));
+  setKPI('dcf-res-cf',         eur(rows.reduce((s,r2)=>s+r2.cf,0)/lz));
+
+  // ── Tabelle ──
+  const tbody = g('dcf-tbody');
+  tbody.innerHTML = rows.map(r2=>{
+    const cfClass = r2.cf>=0?'pos':'neg';
+    return`<tr>
+      <td style="font-weight:600">${r2.t}</td>
+      <td>${eur(r2.kaltmieteJahr)}</td>
+      <td style="color:var(--text2)">${fmt(r2.leerAkt*100,1).replace('.',',')} %</td>
+      <td>${eur(r2.nettomiete)}</td>
+      <td style="color:var(--text2)">${eur(r2.bewirtAbs)}</td>
+      <td style="color:var(--text2)">${eur(r2.instandhAbs)}</td>
+      <td style="color:var(--amber)">${eur(r2.annDCF)}</td>
+      <td class="${cfClass}">${eur(r2.cf)}</td>
+      <td style="color:var(--blue)">${eur(r2.barwert)}</td>
+      <td style="font-weight:500">${eur(r2.kumBarwert)}</td>
+    </tr>`;
+  }).join('');
+
+  // Fußzeile mit Restwert
+  const tfoot=g('dcf-tfoot');
+  tfoot.innerHTML=`
+    <tr style="background:var(--amber-bg);font-size:12px">
+      <td colspan="8" style="text-align:right;font-weight:600;color:var(--amber);padding:6px 8px">
+        Restwert (Terminal Value) bei ${fmt(exitKapAdj*100,2).replace('.',',')}% Exit-Kap.-Zins:
+      </td>
+      <td style="font-weight:600;color:var(--amber);padding:6px 8px">${eur(restwertBarwert)}</td>
+      <td style="font-weight:700;color:var(--amber);padding:6px 8px">${eur(restwertNetto)}</td>
+    </tr>
+    <tr style="background:var(--blue);color:#fff;font-weight:700">
+      <td colspan="8" style="text-align:right;padding:8px">DCF-Gesamtwert (Barwert aller Zuflüsse)</td>
+      <td colspan="2" style="padding:8px">${eur(dcfGesamtwert)}</td>
+    </tr>`;
+}
+
+// ══════════════════════════════════════════
 // NEUE FEATURES: AMPEL, AUTOSAVE, RESET, HILFE
 // ══════════════════════════════════════════
 
@@ -3056,7 +3696,7 @@ script.onload=()=>{
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const et=g('tab-eingabe');if(et)et.classList.add('active');
   const nb=document.querySelector('.nav-btn');if(nb)nb.classList.add('active');
-  calc(); vgl_calc(); appInit();
+  calc(); vgl_calc(); calcDCF(); appInit();
 };
 document.head.appendChild(script);
 </script>
