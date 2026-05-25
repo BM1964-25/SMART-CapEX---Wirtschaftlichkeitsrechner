@@ -1348,6 +1348,8 @@ function effBlock(kwh,id){
   g(id).innerHTML=`<div style="display:inline-block;padding:4px 14px;border-radius:6px;background:${e.bg};color:${e.col};font-size:22px;font-weight:600;margin-bottom:3px">${e.kl}</div><div style="font-size:10px;color:var(--text2)">${fmt(kwh,0)} kWh/m²a</div>`;
 }
 function calcAmort(inv,sav,pi){
+  if(inv<=0) return 0;
+  if(sav<=0) return '>50';
   let c=0,s=sav;
   for(let y=1;y<=50;y++){c+=s;if(c>=inv)return y;s*=(1+pi/100);}
   return'>50';
@@ -1466,7 +1468,7 @@ function calc(){
   roiCard.querySelectorAll('div').forEach(d=>{if(d.style.color!==undefined)d.style.color=roi>=0?'var(--green)':'var(--red)';});
   g('m-roi').style.color=roi>=0?'var(--green)':'var(--red)';
 
-  S={brutto,netto,fk,ann,ek,zins,lz,fl,einsparEur,einsparKwh,mieteJahrNeu,mieteJahr,
+  S={brutto,netto,fk,ann,ek,zins,lz:n,fl,einsparEur,einsparKwh,mieteJahrNeu,mieteJahr,
      basisKosten:basis,foerd,co2,vor,nach,mietErh,miete,mietNeu,leer,ms,
      co2Faktor,vkwVal,umlagefaehig};
 
@@ -1716,10 +1718,14 @@ function calcFinanzplan(){
 // ── STEUER ──
 let chartSteuer=null;
 function stSyncMiete(){
-  // Mieteinnahmen aus Haupteingabe übernehmen
+  // Mieteinnahmen und Laufzeit aus Haupteingabe übernehmen
   const miete = S.mieteJahrNeu || S.mieteJahr || 0;
   const el = g('stmiete');
-  if(el && miete>0){ el.value=Math.round(miete); calcSteuer(); }
+  if(el && miete>0) el.value=Math.round(miete);
+  // Laufzeit synchronisieren
+  const lzEl = g('steuerjahre'); const lz = S.lz || v('laufzeit');
+  if(lzEl && lz>0) lzEl.value=lz;
+  calcSteuer();
 }
 
 function calcSteuer(){
@@ -1873,7 +1879,7 @@ function calcSteuer(){
 function calcBewertung(){
   const fl=S.fl||v('flaeche');
   const mieteJahrNeu=S.mieteJahrNeu||0,mieteJahr=S.mieteJahr||0;
-  const bewirt=v('bewirt')/100;
+  const bewirt=(v('bewirt')||22)/100;
   const kapVor=v('kapzins-vor')/100,kapNach=v('kapzins-nach')/100;
   const vkw=v('vkw');
 
@@ -3167,7 +3173,7 @@ function vgl_getData(p){
   const foerd=basis*kfw/100+bafa;
   const netto=Math.max(0,brutto-foerd);
   const fk=Math.max(0,netto-ek);
-  const ann=fk*(zins+tilg)/100;
+  const iV=zins/100; const ann=fk>0&&iV>0?fk*(iV*Math.pow(1+iV,20))/(Math.pow(1+iV,20)-1):fk*tilg/100;
 
   const einsparKwh=(vorher-nachher)*fl;
   const einsparEur=einsparKwh*ep;
